@@ -1,0 +1,78 @@
+<div class="mb-4">
+  <h2 class="mb-1">Consulta de Citas Medicas</h2>
+  <p class="text-secondary mb-0">HE-01: Buscar citas por medico o terapista y fecha</p>
+</div>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <div class="row g-3 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label">Medico / Terapista</label>
+        <select class="form-select" [(ngModel)]="selectedDoctorId">
+          <option [ngValue]="null">Seleccione un medico</option>
+          <option *ngFor="let doctor of doctors" [ngValue]="doctor.id">
+            {{ doctor.fullName }} — {{ doctor.specialty }}
+          </option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Fecha</label>
+        <input type="date" class="form-control" [(ngModel)]="selectedDate">
+      </div>
+      <div class="col-md-3">
+        <button class="btn btn-primary w-100" (click)="search()">
+          Buscar Citas
+        </button>
+      </div>
+    </div>
+
+    <div class="alert alert-warning mt-3 mb-0 py-2" *ngIf="searchError">
+      {{ searchError }}
+    </div>
+  </div>
+</div>
+
+<div *ngIf="loading" class="text-center py-5">
+  <div class="spinner-border text-primary"></div>
+  <p class="mt-3 text-secondary">Buscando citas...</p>
+</div>
+
+<div *ngIf="searched && !loading">
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center bg-white">
+      <h5 class="mb-0">Resultados</h5>
+      <span class="badge bg-primary fs-6 px-3 py-2">Total: {{ total }} citas</span>
+    </div>
+    <div class="card-body p-0">
+      <div *ngIf="appointments.length === 0" class="text-center py-5 text-secondary">
+        <p class="mb-0">No existen citas medicas registradas para el profesional en la fecha seleccionada.</p>
+      </div>
+      <div class="table-responsive" *ngIf="appointments.length > 0">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Fecha y Hora</th>
+              <th>Paciente</th>
+              <th>Documento</th>
+              <th>WhatsApp</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let apt of appointments; let i = index">
+              <td class="text-secondary">{{ i + 1 }}</td>
+              <td class="fw-semibold">{{ apt.appointmentDate | date:'dd/MM/yyyy HH:mm' }}</td>
+              <td>{{ apt.patientName || ('ID ' + apt.patientId) }}</td>
+              <td>{{ apt.patientDocument || '—' }}</td>
+              <td>{{ apt.whatsappNumber }}</td>
+              <td>
+                <span class="badge bg-secondary">{{ apt.status }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
