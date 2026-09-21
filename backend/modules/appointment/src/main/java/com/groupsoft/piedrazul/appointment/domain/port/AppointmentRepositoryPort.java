@@ -12,4 +12,6 @@ public interface AppointmentRepositoryPort {
 
     List<Appointment> findByDoctorAndDateRange(
             Long doctorId, LocalDateTime startOfDay, LocalDateTime endOfDay);
+
+    Appointment save(Appointment appointment);
 }

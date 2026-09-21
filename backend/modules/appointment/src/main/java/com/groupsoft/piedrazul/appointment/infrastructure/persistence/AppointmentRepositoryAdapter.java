@@ -20,4 +20,9 @@ public class AppointmentRepositoryAdapter implements AppointmentRepositoryPort {
         return jpaRepository.findByDoctorIdAndAppointmentDateBetween(
                 doctorId, startOfDay, endOfDay);
     }
+
+    @Override
+    public Appointment save(Appointment appointment) {
+        return jpaRepository.save(appointment);
+    }
 }
