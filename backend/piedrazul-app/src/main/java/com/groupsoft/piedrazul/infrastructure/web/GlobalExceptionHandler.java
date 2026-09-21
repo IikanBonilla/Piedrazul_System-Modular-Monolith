@@ -14,7 +14,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DomainException.class)
     public ResponseEntity<Map<String, String>> handleDomainException(DomainException ex) {
         HttpStatus status = switch (ex.getCode()) {
-            case "MISSING_DOCTOR", "MISSING_DATE" -> HttpStatus.BAD_REQUEST;
+            case "MISSING_DOCTOR", "MISSING_DATE", "MISSING_SLOT",
+                 "INVALID_BOOKING_WINDOW", "NO_WORKING_DAYS",
+                 "INVALID_TIME_RANGE", "INVALID_SLOT_INTERVAL" -> HttpStatus.BAD_REQUEST;
             case "DOCTOR_NOT_FOUND" -> HttpStatus.NOT_FOUND;
             default -> HttpStatus.UNPROCESSABLE_ENTITY;
         };
