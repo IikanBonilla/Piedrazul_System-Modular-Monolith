@@ -18,13 +18,13 @@ import java.time.LocalDate;
 @RestController
 @RequestMapping("/api/v1/doctors")
 @RequiredArgsConstructor
-@Tag(name = "Availability", description = "HE-02: Franjas disponibles")
+@Tag(name = "Availability", description = "HE-02/HE-03: Franjas disponibles")
 public class AvailabilitySlotsController {
 
     private final QueryAvailableSlotsUseCase queryAvailableSlotsUseCase;
 
     @GetMapping("/{doctorId}/slots")
-    @Operation(summary = "Consultar franjas disponibles por medico y fecha (HU-2.3)")
+    @Operation(summary = "Consultar franjas disponibles por medico y fecha (HU-2.3 / HU-3.5)")
     public ResponseEntity<AvailableSlotsResultDTO> getAvailableSlots(
             @PathVariable Long doctorId,
             @RequestParam(required = false)

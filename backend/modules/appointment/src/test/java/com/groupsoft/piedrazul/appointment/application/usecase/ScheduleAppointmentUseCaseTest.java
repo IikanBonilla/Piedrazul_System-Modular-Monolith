@@ -109,7 +109,7 @@ class ScheduleAppointmentUseCaseTest {
         LocalDate date = LocalDate.of(2026, 9, 21);
         LocalDateTime slot = date.atTime(9, 0);
         stubHappyPath(date);
-        when(doctorSchedulePort.candidateSlots(date)).thenReturn(List.of(slot));
+        when(doctorSchedulePort.candidateSlots(1L, date)).thenReturn(List.of(slot));
         when(appointmentRepository.findByDoctorAndDateRange(eq(1L), any(), any()))
                 .thenReturn(List.of(Appointment.builder()
                         .doctorId(1L)
@@ -130,7 +130,7 @@ class ScheduleAppointmentUseCaseTest {
                 .thenReturn(Optional.of(new UserSummary(10L, "Juan Perez", "1234567890", "3001234567")));
         when(doctorQueryPort.findById(1L))
                 .thenReturn(Optional.of(new DoctorSummary(1L, "Dra. Maria Lopez", "Medicina General")));
-        when(doctorSchedulePort.candidateSlots(date)).thenReturn(List.of(
+        when(doctorSchedulePort.candidateSlots(1L, date)).thenReturn(List.of(
                 date.atTime(9, 0),
                 date.atTime(11, 0)
         ));

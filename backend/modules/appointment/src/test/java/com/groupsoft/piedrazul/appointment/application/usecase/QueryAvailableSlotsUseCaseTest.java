@@ -44,73 +44,83 @@ class QueryAvailableSlotsUseCaseTest {
     }
 
     @Test
-    void shouldReturnOnlyUnoccupiedSlots() {
-        LocalDate date = LocalDate.of(2026, 9, 21);
-        when(doctorQueryPort.findById(1L))
-                .thenReturn(Optional.of(new DoctorSummary(1L, "Dra. Maria Lopez", "Medicina General")));
-        when(doctorSchedulePort.candidateSlots(date)).thenReturn(List.of(
-                date.atTime(9, 0),
-                date.atTime(9, 30),
-                date.atTime(10, 30)
-        ));
-        when(appointmentRepository.findByDoctorAndDateRange(eq(1L), any(), any()))
-                .thenReturn(List.of(
-                        occupied(date.atTime(9, 0), AppointmentStatus.CONFIRMED),
-                        occupied(date.atTime(10, 30), AppointmentStatus.CANCELLED)
-                ));
-
-        var result = useCase.execute(1L, date);
-
-        assertEquals(2, result.getTotal());
-        assertEquals(date.atTime(9, 30), result.getSlots().get(0).getStart());
-        assertEquals(date.atTime(10, 30), result.getSlots().get(1).getStart());
-        assertNull(result.getMessage());
-    }
-
-    @Test
-    void shouldInformWhenThereAreNoAvailableSlots() {
-        LocalDate date = LocalDate.of(2026, 9, 21);
-        when(doctorQueryPort.findById(1L))
-                .thenReturn(Optional.of(new DoctorSummary(1L, "Dra. Maria Lopez", "Medicina General")));
-        when(doctorSchedulePort.candidateSlots(date)).thenReturn(List.of(date.atTime(9, 0)));
-        when(appointmentRepository.findByDoctorAndDateRange(eq(1L), any(), any()))
-                .thenReturn(List.of(occupied(date.atTime(9, 0), AppointmentStatus.PENDING)));
+    void hu31_shouldHideDatesOutsideBookingWindow() {
+        LocalDate date = LocalDate.of(2026, 11, 1);
+        stubDoctor();
+        when(doctorSchedulePort.isDateWithinBookingWindow(1L, date)).thenReturn(false);
 
         var result = useCase.execute(1L, date);
 
         assertEquals(0, result.getTotal());
         assertTrue(result.getSlots().isEmpty());
-        assertEquals(
-                "No existen franjas disponibles para el profesional en la fecha seleccionada.",
-                result.getMessage()
-        );
+        assertTrue(result.getMessage().toLowerCase().contains("ventana"));
     }
 
     @Test
-    void shouldThrowWhenDoctorIsMissing() {
-        AppointmentSchedulingException ex = assertThrows(
-                AppointmentSchedulingException.class,
-                () -> useCase.execute(null, LocalDate.now())
-        );
-        assertEquals("MISSING_DOCTOR", ex.getCode());
+    void hu32_shouldOnlyReturnSlotsFromConfiguredWorkingDays() {
+        LocalDate sunday = LocalDate.of(2026, 9, 20);
+        stubDoctor();
+        when(doctorSchedulePort.isDateWithinBookingWindow(1L, sunday)).thenReturn(true);
+        when(doctorSchedulePort.candidateSlots(1L, sunday)).thenReturn(List.of());
+        when(appointmentRepository.findByDoctorAndDateRange(eq(1L), any(), any())).thenReturn(List.of());
+
+        var result = useCase.execute(1L, sunday);
+
+        assertEquals(0, result.getTotal());
+        assertTrue(result.getMessage().contains("No existen franjas disponibles"));
     }
 
     @Test
-    void shouldThrowWhenDateIsMissing() {
-        AppointmentSchedulingException ex = assertThrows(
-                AppointmentSchedulingException.class,
-                () -> useCase.execute(1L, null)
-        );
-        assertEquals("MISSING_DATE", ex.getCode());
+    void hu33_and_hu35_shouldUseDynamicCandidateSlotsFromConfig() {
+        LocalDate date = LocalDate.of(2026, 9, 21);
+        stubDoctor();
+        when(doctorSchedulePort.isDateWithinBookingWindow(1L, date)).thenReturn(true);
+        when(doctorSchedulePort.candidateSlots(1L, date)).thenReturn(List.of(
+                date.atTime(8, 0),
+                date.atTime(8, 20)
+        ));
+        when(appointmentRepository.findByDoctorAndDateRange(eq(1L), any(), any())).thenReturn(List.of());
+
+        var result = useCase.execute(1L, date);
+
+        assertEquals(2, result.getTotal());
+        assertEquals(date.atTime(8, 0), result.getSlots().get(0).getStart());
+        assertEquals(date.atTime(8, 20), result.getSlots().get(1).getStart());
+        assertNull(result.getMessage());
     }
 
-    private Appointment occupied(LocalDateTime when, AppointmentStatus status) {
-        return Appointment.builder()
-                .id(1L)
-                .patientId(10L)
-                .doctorId(1L)
-                .appointmentDate(when)
-                .status(status)
-                .build();
+    @Test
+    void hu34_shouldExcludeOccupiedSlotsFromConfiguredInterval() {
+        LocalDate date = LocalDate.of(2026, 9, 21);
+        stubDoctor();
+        when(doctorSchedulePort.isDateWithinBookingWindow(1L, date)).thenReturn(true);
+        when(doctorSchedulePort.candidateSlots(1L, date)).thenReturn(List.of(
+                date.atTime(9, 0),
+                date.atTime(9, 30)
+        ));
+        when(appointmentRepository.findByDoctorAndDateRange(eq(1L), any(), any()))
+                .thenReturn(List.of(Appointment.builder()
+                        .doctorId(1L)
+                        .appointmentDate(date.atTime(9, 0))
+                        .status(AppointmentStatus.CONFIRMED)
+                        .build()));
+
+        var result = useCase.execute(1L, date);
+
+        assertEquals(1, result.getTotal());
+        assertEquals(date.atTime(9, 30), result.getSlots().get(0).getStart());
+    }
+
+    @Test
+    void shouldThrowWhenDoctorOrDateIsMissing() {
+        assertEquals("MISSING_DOCTOR",
+                assertThrows(AppointmentSchedulingException.class, () -> useCase.execute(null, LocalDate.now())).getCode());
+        assertEquals("MISSING_DATE",
+                assertThrows(AppointmentSchedulingException.class, () -> useCase.execute(1L, null)).getCode());
+    }
+
+    private void stubDoctor() {
+        when(doctorQueryPort.findById(1L))
+                .thenReturn(Optional.of(new DoctorSummary(1L, "Dra. Maria Lopez", "Medicina General")));
     }
 }

@@ -11,5 +11,10 @@ export const routes: Routes = [
     path: 'paciente',
     loadChildren: () =>
       import('./pages/patient/routes').then((m) => m.PATIENT_ROUTES)
+  },
+  {
+    path: 'admin',
+    loadChildren: () =>
+      import('./pages/admin/routes').then((m) => m.ADMIN_ROUTES)
   }
 ];

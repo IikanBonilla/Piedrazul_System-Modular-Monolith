@@ -20,8 +20,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * HE-02 / HU-2.3: consulta de franjas disponibles.
- * Reutiliza las citas existentes para ocultar horarios ocupados.
+ * HE-02 / HU-2.3 + HE-03 / HU-3.5: franjas disponibles segun config del administrador.
  */
 @Service
 @RequiredArgsConstructor
@@ -49,9 +48,25 @@ public class QueryAvailableSlotsUseCase {
         var doctor = doctorQueryPort.findById(doctorId)
                 .orElseThrow(() -> AppointmentSchedulingException.doctorNotFound(doctorId));
 
-        Set<LocalDateTime> occupied = occupiedSlots(doctorId, date);
+        if (!doctorSchedulePort.isDateWithinBookingWindow(doctorId, date)) {
+            return AvailableSlotsResultDTO.builder()
+                    .doctorId(doctorId)
+                    .doctorName(doctor.fullName())
+                    .date(date)
+                    .total(0)
+                    .slots(List.of())
+                    .message("La fecha esta fuera de la ventana de semanas configurada para agendar.")
+                    .build();
+        }
 
-        List<TimeSlotDTO> available = doctorSchedulePort.candidateSlots(date).stream()
+        Set<LocalDateTime> occupied = appointmentRepository
+                .findByDoctorAndDateRange(doctorId, date.atStartOfDay(), date.atTime(23, 59, 59))
+                .stream()
+                .filter(appointment -> OCCUPYING_STATUSES.contains(appointment.getStatus()))
+                .map(Appointment::getAppointmentDate)
+                .collect(Collectors.toSet());
+
+        List<TimeSlotDTO> available = doctorSchedulePort.candidateSlots(doctorId, date).stream()
                 .filter(slot -> !occupied.contains(slot))
                 .map(slot -> TimeSlotDTO.builder().start(slot).build())
                 .toList();
@@ -68,14 +83,5 @@ public class QueryAvailableSlotsUseCase {
                 .slots(available)
                 .message(message)
                 .build();
-    }
-
-    private Set<LocalDateTime> occupiedSlots(Long doctorId, LocalDate date) {
-        return appointmentRepository
-                .findByDoctorAndDateRange(doctorId, date.atStartOfDay(), date.atTime(23, 59, 59))
-                .stream()
-                .filter(appointment -> OCCUPYING_STATUSES.contains(appointment.getStatus()))
-                .map(Appointment::getAppointmentDate)
-                .collect(Collectors.toSet());
     }
 }

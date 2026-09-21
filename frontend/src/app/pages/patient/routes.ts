@@ -10,5 +10,10 @@ export const PATIENT_ROUTES: Routes = [
     path: 'agendar',
     loadComponent: () =>
       import('./schedule/component').then((m) => m.PatientScheduleComponent)
+  },
+  {
+    path: 'disponibilidad',
+    loadComponent: () =>
+      import('./available-slots/component').then((m) => m.AvailableSlotsComponent)
   }
 ];

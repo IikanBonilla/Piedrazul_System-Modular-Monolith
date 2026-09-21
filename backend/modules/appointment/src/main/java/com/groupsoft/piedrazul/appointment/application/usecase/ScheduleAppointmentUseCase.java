@@ -60,7 +60,7 @@ public class ScheduleAppointmentUseCase {
 
         LocalDateTime slot = safeRequest.getSlot();
         LocalDate date = slot.toLocalDate();
-        List<LocalDateTime> candidates = doctorSchedulePort.candidateSlots(date);
+        List<LocalDateTime> candidates = doctorSchedulePort.candidateSlots(doctor.id(), date);
         Set<LocalDateTime> occupied = occupiedSlots(doctor.id(), date);
         List<LocalDateTime> available = candidates.stream()
                 .filter(candidate -> !occupied.contains(candidate))

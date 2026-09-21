@@ -1,6 +1,5 @@
 package com.groupsoft.piedrazul.availability.domain.model;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -8,30 +7,57 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Horario clinico de atencion. Domingo no hay atencion.
- * Franjas de 30 minutos: 08:00-12:00 y 14:00-18:00.
+ * Genera franjas a partir de la configuracion del medico (HE-03).
+ * Default historico: lun-sab, 08:00-12:00 y 14:00-18:00, 30 min.
  */
 public final class DoctorWorkingHours {
 
-    public static final int SLOT_MINUTES = 30;
+    public List<LocalDateTime> slotsFor(LocalDate date, DoctorSchedulingConfig config) {
+        if (date == null || config == null) {
+            return List.of();
+        }
+        if (config.getWorkingDays() == null || !config.getWorkingDays().contains(date.getDayOfWeek())) {
+            return List.of();
+        }
 
-    public List<LocalDateTime> slotsFor(LocalDate date) {
-        if (date == null || date.getDayOfWeek() == DayOfWeek.SUNDAY) {
+        int interval = config.getSlotIntervalMinutes();
+        if (interval <= 0) {
             return List.of();
         }
 
         List<LocalDateTime> slots = new ArrayList<>();
-        addRange(slots, date, LocalTime.of(8, 0), LocalTime.of(12, 0));
-        addRange(slots, date, LocalTime.of(14, 0), LocalTime.of(18, 0));
+        List<TimeRange> ranges = config.getTimeSlots() == null ? List.of() : config.getTimeSlots();
+        for (TimeRange range : ranges) {
+            addRange(slots, date, range.getStartTime(), range.getEndTime(), interval);
+        }
         return List.copyOf(slots);
     }
 
-    private void addRange(List<LocalDateTime> slots, LocalDate date, LocalTime start, LocalTime end) {
+    public boolean isWithinBookingWindow(LocalDate date, DoctorSchedulingConfig config, LocalDate today) {
+        if (date == null || config == null || today == null) {
+            return false;
+        }
+        if (date.isBefore(today)) {
+            return false;
+        }
+        LocalDate lastDay = today.plusWeeks(config.getBookingWindowWeeks());
+        return !date.isAfter(lastDay);
+    }
+
+    private void addRange(
+            List<LocalDateTime> slots,
+            LocalDate date,
+            LocalTime start,
+            LocalTime end,
+            int intervalMinutes) {
+        if (start == null || end == null || !start.isBefore(end)) {
+            return;
+        }
         LocalDateTime current = date.atTime(start);
         LocalDateTime limit = date.atTime(end);
         while (current.isBefore(limit)) {
             slots.add(current);
-            current = current.plusMinutes(SLOT_MINUTES);
+            current = current.plusMinutes(intervalMinutes);
         }
     }
 }
