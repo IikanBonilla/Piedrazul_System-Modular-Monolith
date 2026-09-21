@@ -4,7 +4,9 @@ import com.groupsoft.piedrazul.appointment.domain.model.Appointment;
 import com.groupsoft.piedrazul.appointment.domain.model.AppointmentStatus;
 import com.groupsoft.piedrazul.appointment.infrastructure.persistence.AppointmentJpaRepository;
 import com.groupsoft.piedrazul.availability.domain.model.Doctor;
+import com.groupsoft.piedrazul.availability.domain.model.DoctorSchedulingConfig;
 import com.groupsoft.piedrazul.availability.domain.repository.DoctorRepository;
+import com.groupsoft.piedrazul.availability.domain.repository.DoctorSchedulingConfigRepository;
 import com.groupsoft.piedrazul.user.domain.model.Role;
 import com.groupsoft.piedrazul.user.domain.model.User;
 import com.groupsoft.piedrazul.user.domain.repository.UserRepository;
@@ -15,11 +17,16 @@ import org.springframework.context.annotation.Configuration;
 
 import java.time.LocalDate;
 
+/**
+ * Semilla de demostracion para HE-01/HE-02 cuando la BD esta vacia.
+ * Crea 1 medico, 1 paciente (documento 1234567890) y 2 citas para manana.
+ */
 @Configuration
 @RequiredArgsConstructor
 public class DemoDataInitializer {
 
     private final DoctorRepository doctorRepository;
+    private final DoctorSchedulingConfigRepository schedulingConfigRepository;
     private final UserRepository userRepository;
     private final AppointmentJpaRepository appointmentRepository;
 
@@ -27,6 +34,7 @@ public class DemoDataInitializer {
     CommandLineRunner seedDemoData() {
         return args -> {
             if (doctorRepository.count() > 0) {
+                seedMissingSchedulingConfigs();
                 return;
             }
 
@@ -35,6 +43,8 @@ public class DemoDataInitializer {
                     .specialty("Medicina General")
                     .active(true)
                     .build());
+
+            schedulingConfigRepository.save(DoctorSchedulingConfig.defaultFor(doctor.getId()));
 
             User patient = userRepository.save(User.builder()
                     .username("paciente")
@@ -66,5 +76,13 @@ public class DemoDataInitializer {
                     .notes("Seguimiento")
                     .build());
         };
+    }
+
+    private void seedMissingSchedulingConfigs() {
+        if (schedulingConfigRepository.count() > 0) {
+            return;
+        }
+        doctorRepository.findAll().forEach(doctor ->
+                schedulingConfigRepository.save(DoctorSchedulingConfig.defaultFor(doctor.getId())));
     }
 }

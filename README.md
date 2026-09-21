@@ -17,25 +17,28 @@ frontend/                     # Pantalla del agendador
 
 ## Configuracion de base de datos
 
-Edita `backend/piedrazul-app/src/main/resources/application.properties`:
+PostgreSQL 16 en un **esquema unico** (`public`). No hay Flyway/Liquibase: Hibernate usa `ddl-auto=update`.
 
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/TU_BASE_DE_DATOS
-spring.datasource.username=TU_USUARIO
-spring.datasource.password=TU_PASSWORD
-```
+Credenciales de desarrollo (alineadas con `docker-compose.yml`):
 
-Si usas Docker, alinea esos valores con `docker-compose.yml`.
+| Campo | Valor |
+|-------|--------|
+| Host | `localhost` |
+| Puerto | `5432` |
+| Base de datos | `piedrazul_db` |
+| Usuario | `piedrazul_user` |
+| Password | `piedrazul_dev` |
+
+Se pueden sobreescribir con `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER` y `POSTGRES_PASSWORD`.
 
 ## Ejecucion
 
 ```bash
-# Opcional: levantar PostgreSQL
-docker-compose up -d
+# PostgreSQL
+docker compose up -d
 
-# Backend
-cd backend/piedrazul-app
-mvn spring-boot:run
+# Backend (desde la raiz del repo)
+./mvnw -pl backend/piedrazul-app -am spring-boot:run
 
 # Frontend (otra terminal)
 cd frontend
@@ -54,7 +57,11 @@ npm start
 
 ## Datos de demostracion
 
-Al primer arranque (BD vacia) se crean 1 medico, 1 paciente y 2 citas para **manana**.
+Al primer arranque (BD vacia) `DemoDataInitializer` crea:
+
+- Medico: Dra. Maria Lopez (Medicina General)
+- Paciente: Juan Perez, usuario `paciente`, documento `1234567890`
+- 2 citas para **manana** (09:00 CONFIRMED, 10:30 PENDING)
 
 ## Historias de usuario cubiertas
 

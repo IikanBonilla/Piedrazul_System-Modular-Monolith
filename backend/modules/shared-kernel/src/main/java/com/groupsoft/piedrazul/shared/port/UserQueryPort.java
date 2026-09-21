@@ -10,4 +10,6 @@ import java.util.Optional;
 public interface UserQueryPort {
 
     Optional<UserSummary> findById(Long userId);
+
+    Optional<UserSummary> findByDocumentNumber(String documentNumber);
 }

@@ -23,6 +23,24 @@ export interface AppointmentSearchResultDTO {
   appointments: AppointmentResponseDTO[];
 }
 
+export interface ScheduleAppointmentRequest {
+  documentNumber: string;
+  doctorId: number;
+  slot: string;
+  confirmed: boolean;
+  notes?: string;
+}
+
+export interface ScheduleAppointmentConfirmationDTO {
+  id: number;
+  patientName: string;
+  patientDocument: string;
+  doctorName: string;
+  appointmentDate: string;
+  status: string;
+  message: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -37,6 +55,15 @@ export class AppointmentService {
   ): Observable<AppointmentSearchResultDTO> {
     return this.http.get<AppointmentSearchResultDTO>(
       `${this.baseUrl}/appointments/doctor/${doctorId}?date=${date}`
+    );
+  }
+
+  scheduleAppointment(
+    payload: ScheduleAppointmentRequest
+  ): Observable<ScheduleAppointmentConfirmationDTO> {
+    return this.http.post<ScheduleAppointmentConfirmationDTO>(
+      `${this.baseUrl}/appointments`,
+      payload
     );
   }
 }

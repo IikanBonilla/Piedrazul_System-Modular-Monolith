@@ -1,0 +1,53 @@
+<div class="mb-4">
+  <h2 class="mb-1">Franjas disponibles</h2>
+  <p class="text-secondary mb-0">HE-02 / HU-2.3: disponibilidad segun la configuracion del administrador (HE-03)</p>
+</div>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <div class="row g-3 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label">Medico / Terapista</label>
+        <select class="form-select" [(ngModel)]="selectedDoctorId">
+          <option [ngValue]="null">Seleccione un medico</option>
+          <option *ngFor="let doctor of doctors" [ngValue]="doctor.id">
+            {{ doctor.fullName }} — {{ doctor.specialty }}
+          </option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Fecha</label>
+        <input type="date" class="form-control" [(ngModel)]="selectedDate">
+      </div>
+      <div class="col-md-3">
+        <button class="btn btn-primary w-100" (click)="consult()" [disabled]="loading">Consultar</button>
+      </div>
+    </div>
+    <div class="alert alert-warning mt-3 mb-0 py-2" *ngIf="formError">{{ formError }}</div>
+  </div>
+</div>
+
+<div *ngIf="loading" class="text-center py-5">
+  <div class="spinner-border text-primary"></div>
+</div>
+
+<div *ngIf="searched && !loading && result">
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center bg-white">
+      <h5 class="mb-0">Franjas de {{ result.doctorName }}</h5>
+      <span class="badge bg-primary fs-6 px-3 py-2">Total: {{ result.total }} franjas</span>
+    </div>
+    <div class="card-body">
+      <div *ngIf="result.total === 0" class="text-center py-4 text-secondary">
+        <p class="mb-0">{{ result.message || 'No existen franjas disponibles para el profesional en la fecha seleccionada.' }}</p>
+      </div>
+      <div class="row g-2" *ngIf="result.total > 0">
+        <div class="col-6 col-md-3" *ngFor="let slot of result.slots">
+          <div class="btn btn-outline-secondary w-100 disabled">
+            {{ slot.start | date:'HH:mm' }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
