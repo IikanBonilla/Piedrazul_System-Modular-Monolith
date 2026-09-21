@@ -15,6 +15,10 @@ import org.springframework.context.annotation.Configuration;
 
 import java.time.LocalDate;
 
+/**
+ * Semilla de demostracion para HE-01/HE-02 cuando la BD esta vacia.
+ * Crea 1 medico, 1 paciente (documento 1234567890) y 2 citas para manana.
+ */
 @Configuration
 @RequiredArgsConstructor
 public class DemoDataInitializer {
