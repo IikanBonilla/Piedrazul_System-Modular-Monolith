@@ -9,6 +9,19 @@ export interface DoctorDTO {
   active: boolean;
 }
 
+export interface TimeSlotDTO {
+  start: string;
+}
+
+export interface AvailableSlotsResultDTO {
+  doctorId: number;
+  doctorName: string;
+  date: string;
+  total: number;
+  slots: TimeSlotDTO[];
+  message?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -19,5 +32,11 @@ export class AvailabilityService {
 
   getDoctors(): Observable<DoctorDTO[]> {
     return this.http.get<DoctorDTO[]>(`${this.baseUrl}/doctors`);
+  }
+
+  getAvailableSlots(doctorId: number, date: string): Observable<AvailableSlotsResultDTO> {
+    return this.http.get<AvailableSlotsResultDTO>(
+      `${this.baseUrl}/doctors/${doctorId}/slots?date=${date}`
+    );
   }
 }
