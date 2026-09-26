@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { API_BASE_URL } from '../../api/api-config';
 
 export interface AppointmentResponseDTO {
   id: number;
@@ -27,7 +28,7 @@ export interface AppointmentSearchResultDTO {
   providedIn: 'root'
 })
 export class AppointmentService {
-  private baseUrl = 'http://localhost:8080/api/v1';
+  private baseUrl = API_BASE_URL;
 
   constructor(private http: HttpClient) {}
 
