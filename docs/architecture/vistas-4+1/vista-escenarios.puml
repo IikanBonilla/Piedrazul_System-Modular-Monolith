@@ -1,0 +1,77 @@
+@startuml vista-escenarios
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+title Vista de escenarios (4+1) — casos de uso\nLos estereotipos dicen qué está en el código y qué no.
+
+actor "Agendador" as Scheduler
+actor "Paciente" as Patient
+actor "Administrador" as Admin
+actor "Médico" as Doctor
+
+rectangle "Piedrazul" {
+  usecase "Iniciar sesión" as Login
+  usecase "Registrarse\ncomo paciente o médico" as Register
+  usecase "HE-01 Buscar citas\nde un médico en una fecha" as HE01
+  usecase "Ver el total y la tabla" as List
+  usecase "Ver el perfil propio" as Profile
+  usecase "HE-02 Agendar cita\neligiendo una franja" as HE02 <<pendiente / no implementado>>
+  usecase "HE-03 Configurar ventana,\ndías, franja e intervalo" as HE03 <<pendiente / no implementado>>
+}
+
+Scheduler --> Login
+Scheduler --> HE01
+
+Admin --> Login
+Admin --> HE01
+Admin --> HE03
+
+Doctor --> Login
+Doctor --> Register
+Doctor --> HE01
+
+Patient --> Login
+Patient --> Register
+Patient --> Profile
+Patient --> HE02
+
+HE01 ..> Login : <<include>>
+HE01 ..> List : <<include>>
+HE02 ..> Login : <<include>>\ncuando exista
+HE02 ..> Register : <<include>>\nprerrequisito ya implementado
+HE03 ..> Login : <<include>>\ncuando exista
+
+note right of HE01
+  Implementado.
+  GET /api/v1/appointments/doctor/{doctorId}?date=
+  Pantalla AppointmentListComponent.
+  Actores con acceso real: ADMINISTRATOR, SCHEDULER y DOCTOR.
+  El paciente recibe 403 en la API y /acceso-denegado en la ruta.
+end note
+
+note bottom of HE02
+  Pendiente / no implementado.
+  El paciente sí puede registrarse y ver su perfil.
+  No puede elegir médico, ver franjas ni crear una cita.
+end note
+
+note bottom of HE03
+  Pendiente / no implementado.
+  El administrador autenticado cae en la consulta de HE-01.
+  No hay parámetros de agenda en Doctor ni en otra entidad.
+end note
+
+note bottom of Scheduler
+  El rol SCHEDULER está en el enum, en AuthFilter
+  y en roleGuard("/agendador").
+  DemoDataInitializer no crea un agendador
+  y el registro público lo rechaza.
+end note
+
+note bottom of Doctor
+  El enunciado nombra tres actores.
+  El código añade Médico: Role.DOCTOR, ruta /medico
+  y alta pública con especialidad.
+end note
+
+@enduml

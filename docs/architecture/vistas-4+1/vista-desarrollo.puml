@@ -1,0 +1,160 @@
+@startuml vista-desarrollo
+skinparam componentStyle rectangle
+skinparam wrapWidth 240
+title Vista de desarrollo (4+1)\nMódulos Maven, el frontend y el sentido de las dependencias.
+
+package "piedrazul-system 1.0.0-SNAPSHOT" {
+  package "piedrazul-backend" {
+    component "shared-kernel" as SK
+    component "user-module" as User
+    component "availability-module" as Avail
+    component "appointment-module" as Appt
+    component "piedrazul-app" as App
+  }
+}
+
+component "frontend" as Fe <<npm, Angular 21>>
+
+User --> SK : Maven
+Avail --> SK : Maven
+Appt --> SK : Maven
+App --> SK : Maven
+App --> User : Maven
+App --> Avail : Maven
+App --> Appt : Maven
+Fe ..> App : solo HTTP\nhttp://localhost:8080/api/v1\nsin dependencia de compilacion
+
+note right of SK
+  Sin Spring ni JPA.
+  Puertos UserQueryPort y DoctorQueryPort,
+  records UserSummary y DoctorSummary,
+  DomainException.
+end note
+
+note bottom of User
+  Dependencias extra: spring-boot-starter-data-jpa
+  y spring-security-crypto.
+end note
+
+note bottom of Avail
+  Dependencia extra: spring-boot-starter-data-jpa.
+  No tiene pruebas.
+end note
+
+note bottom of Appt
+  Dependencia extra: spring-boot-starter-data-jpa.
+end note
+
+note bottom of App
+  Además: spring-boot-starter-web, postgresql,
+  springdoc-openapi 2.5.0.
+  Es el único módulo con main:
+  PiedrazulApplication escanea com.groupsoft.piedrazul.
+end note
+
+@enduml
+
+@startuml vista-desarrollo-hexagonal
+skinparam packageStyle rectangle
+title Vista de desarrollo — paquetes y límite hexagonal\nVerde: el dominio no conoce el adaptador. Ámbar: el dominio depende de Spring Data o JPA.
+
+package "appointment-module" {
+  package "appointment.domain.port" #CDECCB {
+    interface AppointmentRepositoryPort
+  }
+  package "appointment.domain.model" #FDE8CD {
+    class Appointment <<jakarta.persistence.Entity>>
+    enum AppointmentStatus
+  }
+  package "appointment.application" #E7F0FA {
+    class SearchAppointmentsByDoctorAndDateUseCase
+    class AppointmentAssembler
+    interface AppointmentResponseEnricher
+    class ScheduleRules
+  }
+  package "appointment.infrastructure.persistence" #EEEEEE {
+    class AppointmentRepositoryAdapter
+    interface AppointmentJpaRepository <<JpaRepository>>
+  }
+}
+
+SearchAppointmentsByDoctorAndDateUseCase --> AppointmentRepositoryPort
+AppointmentRepositoryAdapter ..|> AppointmentRepositoryPort
+AppointmentRepositoryAdapter --> AppointmentJpaRepository
+AppointmentJpaRepository --> Appointment
+
+note bottom of Appointment
+  El caso de uso sí depende del puerto y no de JPA.
+  La entidad, en cambio, está anotada con JPA
+  dentro del paquete domain.model.
+end note
+
+package "user-module" {
+  package "user.domain.repository" #FDE8CD {
+    interface UserRepository <<JpaRepository>>
+  }
+  package "user.domain.model" #FDE8CD {
+    class User <<jakarta.persistence.Entity>>
+  }
+  package "user.application" #E7F0FA {
+    class LoginUseCase
+    class RegisterUserUseCase
+  }
+  package "user.infrastructure.adapter" #EEEEEE {
+    class UserQueryAdapter
+  }
+}
+
+LoginUseCase --> UserRepository : sin puerto de salida
+RegisterUserUseCase --> UserRepository : sin puerto de salida
+UserQueryAdapter ..|> UserQueryPort
+UserQueryAdapter --> UserRepository
+
+note bottom of UserRepository
+  El adaptador UserQueryAdapter cumple el puerto del shared-kernel
+  para los otros módulos. Los casos de uso de login y registro
+  no pasan por un puerto: conocen Spring Data.
+end note
+
+package "availability-module" {
+  package "availability.domain.repository" #FDE8CD {
+    interface DoctorRepository <<JpaRepository>>
+  }
+  package "availability.domain.model" #FDE8CD {
+    class Doctor <<jakarta.persistence.Entity>>
+  }
+  package "availability.application.service" #E7F0FA {
+    class DoctorQueryService
+  }
+  package "availability.infrastructure.adapter" #EEEEEE {
+    class DoctorQueryAdapter
+  }
+}
+
+DoctorQueryService --> DoctorRepository : sin puerto de salida
+DoctorQueryAdapter ..|> DoctorQueryPort
+DoctorQueryAdapter --> DoctorRepository
+
+package "piedrazul-app.infrastructure" #F4F4F4 {
+  class AuthController
+  class AppointmentSearchController
+  class DoctorController
+  class AuthFilter
+  class RegisterAccountService
+}
+
+AuthController --> LoginUseCase
+AuthController --> RegisterAccountService
+AppointmentSearchController --> SearchAppointmentsByDoctorAndDateUseCase
+DoctorController --> DoctorQueryService
+RegisterAccountService --> DoctorRepository : cruza al repositorio JPA
+RegisterAccountService --> UserRepository : cruza al repositorio JPA
+
+note as N
+  Los módulos de negocio no se dependen entre sí por Maven.
+  user, availability y appointment solo dependen de shared-kernel.
+  Quien une los módulos es piedrazul-app.
+  Esa unión a veces salta el puerto y usa el repositorio JPA del otro módulo.
+end note
+
+@enduml
