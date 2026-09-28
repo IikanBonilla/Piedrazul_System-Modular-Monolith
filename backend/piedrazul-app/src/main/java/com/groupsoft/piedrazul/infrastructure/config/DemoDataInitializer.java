@@ -17,6 +17,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Semilla de demostracion: medico y citas de HE-01, usuarios de login por rol
@@ -36,15 +37,8 @@ public class DemoDataInitializer {
     CommandLineRunner seedDemoData() {
         return args -> {
             boolean freshCatalog = doctorRepository.count() == 0;
-            Doctor doctor = freshCatalog
-                    ? doctorRepository.save(Doctor.builder()
-                    .fullName("Dra. Maria Lopez")
-                    .specialty("Medicina General")
-                    .active(true)
-                    .build())
-                    : doctorRepository.findAll().get(0);
-
-            seedMissingSchedulingConfigs();
+            Doctor doctor = ensureActiveDoctor();
+            ensureSchedulingConfig(doctor);
 
             User patient = ensureUser(
                     "paciente",
@@ -115,12 +109,31 @@ public class DemoDataInitializer {
         };
     }
 
-    private void seedMissingSchedulingConfigs() {
-        if (schedulingConfigRepository.count() > 0) {
+    private Doctor ensureActiveDoctor() {
+        List<Doctor> doctors = doctorRepository.findAll();
+        Doctor doctor = doctors.stream()
+                .filter(Doctor::isActive)
+                .findFirst()
+                .orElse(doctors.isEmpty() ? null : doctors.get(0));
+        if (doctor == null) {
+            return doctorRepository.save(Doctor.builder()
+                    .fullName("Dra. Maria Lopez")
+                    .specialty("Medicina General")
+                    .active(true)
+                    .build());
+        }
+        if (!doctor.isActive()) {
+            doctor.setActive(true);
+            return doctorRepository.save(doctor);
+        }
+        return doctor;
+    }
+
+    private void ensureSchedulingConfig(Doctor doctor) {
+        if (schedulingConfigRepository.findByDoctorId(doctor.getId()).isPresent()) {
             return;
         }
-        doctorRepository.findAll().forEach(doctor ->
-                schedulingConfigRepository.save(DoctorSchedulingConfig.defaultFor(doctor.getId())));
+        schedulingConfigRepository.save(DoctorSchedulingConfig.defaultFor(doctor.getId()));
     }
 
     private User ensureUser(

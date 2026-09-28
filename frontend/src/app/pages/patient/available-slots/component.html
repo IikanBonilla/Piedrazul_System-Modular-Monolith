@@ -14,6 +14,7 @@
             {{ doctor.fullName }} — {{ doctor.specialty }}
           </option>
         </select>
+        <p class="text-danger small mb-0 mt-1" *ngIf="doctorsError">{{ doctorsError }}</p>
       </div>
       <div class="col-md-4">
         <label class="form-label">Fecha</label>

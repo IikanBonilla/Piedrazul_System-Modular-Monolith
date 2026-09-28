@@ -7,6 +7,7 @@ import {
   AvailableSlotsResultDTO,
   DoctorDTO
 } from '../../../core/services/availability/service';
+import { httpErrorMessage } from '../../../core/http/error-message';
 
 @Component({
   selector: 'app-available-slots',
@@ -22,12 +23,22 @@ export class AvailableSlotsComponent implements OnInit {
   loading = false;
   searched = false;
   formError = '';
+  doctorsError = '';
 
   constructor(private availabilityService: AvailabilityService) {}
 
   ngOnInit() {
     this.availabilityService.getDoctors().subscribe({
-      next: (doctors) => { this.doctors = doctors; }
+      next: (doctors) => {
+        this.doctors = doctors;
+        this.doctorsError = doctors.length === 0
+          ? 'No hay médicos activos. Reinicia el backend para cargar la semilla de la Dra. Maria Lopez.'
+          : '';
+      },
+      error: (error) => {
+        this.doctors = [];
+        this.doctorsError = httpErrorMessage(error, 'No se pudo cargar la lista de médicos.');
+      }
     });
   }
 
