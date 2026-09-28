@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: piedrazul-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: piedrazul_db
+      POSTGRES_USER: piedrazul_user
+      POSTGRES_PASSWORD: piedrazul_dev
+    volumes:
+      - piedrazul_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U piedrazul_user -d piedrazul_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  piedrazul_pgdata:

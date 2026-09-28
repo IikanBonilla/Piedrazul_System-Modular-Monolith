@@ -1,0 +1,72 @@
+<div class="mb-4">
+  <h2 class="mb-1">Configuracion de parametros</h2>
+  <p class="text-secondary mb-0">HE-03: ventana de semanas, dias, franjas e intervalo por medico</p>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Medico / Terapista</label>
+        <select class="form-select" [(ngModel)]="selectedDoctorId" (ngModelChange)="onDoctorChange()">
+          <option [ngValue]="null">Seleccione un medico</option>
+          <option *ngFor="let doctor of doctors" [ngValue]="doctor.id">
+            {{ doctor.fullName }} — {{ doctor.specialty }}
+          </option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Ventana de semanas</label>
+        <input class="form-control" type="number" min="1" step="1" [(ngModel)]="bookingWindowWeeks">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Intervalo (minutos)</label>
+        <input class="form-control" type="number" min="1" step="1" [(ngModel)]="slotIntervalMinutes">
+      </div>
+    </div>
+
+    <div class="mt-4">
+      <label class="form-label d-block">Dias de atencion</label>
+      <div class="d-flex flex-wrap gap-3">
+        <label class="form-check" *ngFor="let day of weekDays">
+          <input class="form-check-input" type="checkbox" [(ngModel)]="selectedDays[day.value]">
+          <span class="form-check-label">{{ day.label }}</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="mt-4">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <label class="form-label mb-0">Franjas horarias</label>
+        <button type="button" class="btn btn-outline-primary btn-sm" (click)="addTimeSlot()">Agregar franja</button>
+      </div>
+      <div class="row g-2 align-items-end mb-2" *ngFor="let slot of timeSlots; let i = index">
+        <div class="col-md-5">
+          <label class="form-label">Inicio</label>
+          <input class="form-control" type="time" [(ngModel)]="slot.startTime">
+        </div>
+        <div class="col-md-5">
+          <label class="form-label">Fin</label>
+          <input class="form-control" type="time" [(ngModel)]="slot.endTime">
+        </div>
+        <div class="col-md-2">
+          <button type="button" class="btn btn-outline-secondary w-100" (click)="removeTimeSlot(i)">Quitar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-4">
+      <button class="btn btn-primary" (click)="save()" [disabled]="loading">Guardar</button>
+    </div>
+
+    <div class="alert alert-warning mt-3 mb-0 py-2" *ngIf="formError">
+      {{ formError }}
+    </div>
+    <ul class="mt-2 mb-0 text-danger small" *ngIf="fieldErrors.length > 1">
+      <li *ngFor="let error of fieldErrors">{{ error }}</li>
+    </ul>
+    <div class="alert alert-success mt-3 mb-0 py-2" *ngIf="successMessage">
+      {{ successMessage }}
+    </div>
+  </div>
+</div>

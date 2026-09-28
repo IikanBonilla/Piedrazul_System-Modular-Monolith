@@ -11,21 +11,21 @@ public class AppointmentSearchException extends DomainException {
     public static AppointmentSearchException missingDoctor() {
         return new AppointmentSearchException(
                 "MISSING_DOCTOR",
-                "Debe seleccionar un medico o terapista antes de realizar la busqueda."
+                "Selecciona un médico o terapista antes de buscar."
         );
     }
 
     public static AppointmentSearchException missingDate() {
         return new AppointmentSearchException(
                 "MISSING_DATE",
-                "Debe seleccionar una fecha antes de realizar la busqueda."
+                "Selecciona una fecha antes de buscar."
         );
     }
 
     public static AppointmentSearchException doctorNotFound(Long doctorId) {
         return new AppointmentSearchException(
                 "DOCTOR_NOT_FOUND",
-                "No existe un medico o terapista con id: " + doctorId
+                "No existe el médico o terapista seleccionado."
         );
     }
 }

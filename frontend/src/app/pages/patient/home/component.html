@@ -1,0 +1,31 @@
+<section class="container page-wrap">
+  <header class="page-header">
+    <p class="eyebrow">Paciente</p>
+    <h1>Hola, {{ session?.fullName || session?.username }}</h1>
+    <p>Esta es tu área personal. Desde aquí no se consultan las agendas de otros pacientes.</p>
+  </header>
+
+  <div class="card profile-card">
+    <div class="card-body">
+      <h2 class="h5 mb-3">Datos de tu cuenta</h2>
+      <dl class="profile-list">
+        <div>
+          <dt>Usuario</dt>
+          <dd>{{ session?.username }}</dd>
+        </div>
+        <div>
+          <dt>Correo</dt>
+          <dd>{{ session?.email || 'Sin correo registrado' }}</dd>
+        </div>
+        <div>
+          <dt>Teléfono</dt>
+          <dd>{{ session?.phone || 'Sin teléfono registrado' }}</dd>
+        </div>
+        <div>
+          <dt>Rol</dt>
+          <dd>Paciente</dd>
+        </div>
+      </dl>
+    </div>
+  </div>
+</section>

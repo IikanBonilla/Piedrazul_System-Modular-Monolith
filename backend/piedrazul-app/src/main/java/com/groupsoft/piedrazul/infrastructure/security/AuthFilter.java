@@ -1,0 +1,126 @@
+package com.groupsoft.piedrazul.infrastructure.security;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
+
+@Component
+@Order(Ordered.HIGHEST_PRECEDENCE)
+@RequiredArgsConstructor
+public class AuthFilter extends OncePerRequestFilter {
+
+    private static final Set<String> DOCTOR_CATALOG_ROLES = Set.of("SCHEDULER", "PATIENT", "ADMINISTRATOR");
+    private static final Pattern SLOT_PATH = Pattern.compile("/api/v1/doctors/\\d+/slots");
+
+    private final AuthTokenService authTokenService;
+    private final ObjectMapper objectMapper;
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true;
+        }
+        String path = normalize(request.getRequestURI());
+        if (isPublicAuth(path)) {
+            return true;
+        }
+        if (path.startsWith("/swagger-ui")
+                || path.startsWith("/api-docs")
+                || path.startsWith("/v3/api-docs")
+                || path.startsWith("/swagger-ui.html")) {
+            return true;
+        }
+        return !path.startsWith("/api/");
+    }
+
+    @Override
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
+        String header = request.getHeader("Authorization");
+        if (header == null || !header.startsWith("Bearer ")) {
+            write(response, HttpServletResponse.SC_UNAUTHORIZED, "UNAUTHORIZED", "Debes iniciar sesión.");
+            return;
+        }
+
+        IssuedToken issued = authTokenService.resolve(header.substring(7).trim()).orElse(null);
+        if (issued == null) {
+            write(response, HttpServletResponse.SC_UNAUTHORIZED, "SESSION_EXPIRED",
+                    "Tu sesión expiró. Ingresa de nuevo.");
+            return;
+        }
+
+        if (!isAllowed(normalize(request.getRequestURI()), request.getMethod(), issued.role())) {
+            write(response, HttpServletResponse.SC_FORBIDDEN, "FORBIDDEN",
+                    "No tienes permiso para acceder a esta función.");
+            return;
+        }
+
+        request.setAttribute("authUserId", issued.userId());
+        request.setAttribute("authRole", issued.role());
+        filterChain.doFilter(request, response);
+    }
+
+    private boolean isPublicAuth(String path) {
+        return path.startsWith("/api/v1/auth/login")
+                || path.startsWith("/api/v1/auth/register")
+                || path.startsWith("/api/v1/patients/register");
+    }
+
+    /**
+     * HE-01 consulta de citas: solo AGENDADOR.
+     * HE-02 franjas y agendamiento: solo PACIENTE.
+     * HE-03 configuracion: solo ADMINISTRADOR.
+     * El catalogo de medicos lo usan las tres pantallas, asi que se comparte entre esos roles.
+     */
+    private boolean isAllowed(String path, String method, String role) {
+        if (path.startsWith("/api/v1/admin/")) {
+            return "ADMINISTRATOR".equals(role);
+        }
+        if (path.startsWith("/api/v1/appointments/doctor/")) {
+            return "GET".equalsIgnoreCase(method) && "SCHEDULER".equals(role);
+        }
+        if ("/api/v1/appointments".equals(path)) {
+            return "POST".equalsIgnoreCase(method) && "PATIENT".equals(role);
+        }
+        if (SLOT_PATH.matcher(path).matches()) {
+            return "GET".equalsIgnoreCase(method) && "PATIENT".equals(role);
+        }
+        if ("/api/v1/doctors".equals(path)) {
+            return "GET".equalsIgnoreCase(method) && DOCTOR_CATALOG_ROLES.contains(role);
+        }
+        return false;
+    }
+
+    private String normalize(String path) {
+        if (path == null || path.length() <= 1 || !path.endsWith("/")) {
+            return path == null ? "" : path;
+        }
+        return path.substring(0, path.length() - 1);
+    }
+
+    private void write(HttpServletResponse response, int status, String code, String message) throws IOException {
+        response.setStatus(status);
+        response.setCharacterEncoding("UTF-8");
+        response.setContentType("application/json");
+        Map<String, String> body = new LinkedHashMap<>();
+        body.put("code", code);
+        body.put("message", message);
+        objectMapper.writeValue(response.getWriter(), body);
+    }
+}
