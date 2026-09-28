@@ -7,6 +7,8 @@ import {
   AppointmentResponseDTO
 } from '../../../core/services/appointment/service';
 import { AvailabilityService, DoctorDTO } from '../../../core/services/availability/service';
+import { httpErrorMessage } from '../../../core/http/error-message';
+import { appointmentDateError } from '../../../core/validation/validators';
 
 @Component({
   selector: 'app-appointment-list',
@@ -23,6 +25,9 @@ export class AppointmentListComponent implements OnInit {
   loading = false;
   searched = false;
   searchError = '';
+  doctorError = '';
+  dateError = '';
+  doctorsError = '';
 
   constructor(
     private appointmentService: AppointmentService,
@@ -33,21 +38,49 @@ export class AppointmentListComponent implements OnInit {
     this.loadDoctors();
   }
 
+  audience(): string {
+    return 'Agendador';
+  }
+
+  statusLabel(status: string): string {
+    const labels: Record<string, string> = {
+      CONFIRMED: 'Confirmada',
+      PENDING: 'Pendiente',
+      CANCELLED: 'Cancelada',
+      COMPLETED: 'Completada',
+      RESCHEDULED: 'Reprogramada'
+    };
+    return labels[status] ?? status;
+  }
+
+  statusClass(status: string): string {
+    const classes: Record<string, string> = {
+      CONFIRMED: 'text-bg-success',
+      PENDING: 'text-bg-warning',
+      CANCELLED: 'text-bg-danger',
+      COMPLETED: 'text-bg-primary',
+      RESCHEDULED: 'text-bg-secondary'
+    };
+    return classes[status] ?? 'text-bg-secondary';
+  }
+
   private loadDoctors() {
     this.availabilityService.getDoctors().subscribe({
-      next: (doctors) => { this.doctors = doctors; }
+      next: (doctors) => { this.doctors = doctors; },
+      error: (error) => {
+        this.doctorsError = httpErrorMessage(error, 'No se pudo cargar la lista de médicos.');
+      }
     });
   }
 
   search() {
-    this.searchError = '';
-
-    if (!this.selectedDoctorId) {
-      this.searchError = 'Debe seleccionar un medico o terapista antes de realizar la busqueda.';
+    if (this.loading) {
       return;
     }
-    if (!this.selectedDate) {
-      this.searchError = 'Debe seleccionar una fecha antes de realizar la busqueda.';
+    this.searchError = '';
+    this.doctorError = this.selectedDoctorId ? '' : 'Selecciona un médico o terapista.';
+    this.dateError = appointmentDateError(this.selectedDate) ?? '';
+    if (this.doctorError || this.dateError) {
       return;
     }
 
@@ -55,7 +88,7 @@ export class AppointmentListComponent implements OnInit {
     this.searched = true;
 
     this.appointmentService
-      .getAppointmentsByDoctorAndDate(this.selectedDoctorId, this.selectedDate)
+      .getAppointmentsByDoctorAndDate(this.selectedDoctorId!, this.selectedDate)
       .pipe(finalize(() => { this.loading = false; }))
       .subscribe({
         next: (response) => {
@@ -65,7 +98,7 @@ export class AppointmentListComponent implements OnInit {
         error: (err) => {
           this.appointments = [];
           this.total = 0;
-          this.searchError = err.error?.message || 'No se pudo realizar la busqueda.';
+          this.searchError = httpErrorMessage(err, 'No se pudo realizar la búsqueda.');
         }
       });
   }

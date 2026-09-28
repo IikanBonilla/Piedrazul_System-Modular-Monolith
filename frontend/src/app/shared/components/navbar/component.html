@@ -1,70 +1,61 @@
-<nav
-  class="navbar navbar-expand-lg sticky-top mb-4"
-  style="background-color: #1e3a8a; box-shadow: 0 2px 12px rgba(15, 23, 42, 0.12);"
->
+<nav class="navbar navbar-expand-lg sticky-top pz-navbar" data-bs-theme="dark">
   <div class="container">
-    <a
-      class="navbar-brand d-flex align-items-center gap-2 text-white fw-bold"
-      routerLink="/agendador"
-      style="font-size: 1.35rem;"
-    >
-      <span
-        class="d-inline-flex align-items-center justify-content-center rounded-circle"
-        style="width: 38px; height: 38px; background-color: #14b8a6;"
-      >
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="white"
-          stroke-width="2.2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
+    <a class="navbar-brand d-flex align-items-center gap-2" [routerLink]="home()">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2">
           <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
         </svg>
       </span>
       Piedrazul
     </a>
 
-    <div class="navbar-nav ms-auto">
-      <a
-        class="nav-link px-3 rounded text-white fw-semibold"
-        routerLink="/agendador"
-        routerLinkActive="active-link"
-      >
-        Consulta de citas (HE-01)
-      </a>
-      <a
-        class="nav-link px-3 rounded text-white fw-semibold"
-        routerLink="/paciente/registro"
-        routerLinkActive="active-link"
-      >
-        Registro (HE-02)
-      </a>
-      <a
-        class="nav-link px-3 rounded text-white fw-semibold"
-        routerLink="/paciente/agendar"
-        routerLinkActive="active-link"
-      >
-        Agendar cita (HE-02)
-      </a>
-      <a
-        class="nav-link px-3 rounded text-white fw-semibold"
-        routerLink="/admin/configuracion"
-        routerLinkActive="active-link"
-      >
-        Configuracion (HE-03)
-      </a>
+    <button
+      class="navbar-toggler"
+      type="button"
+      (click)="menuOpen = !menuOpen"
+      [attr.aria-expanded]="menuOpen"
+      aria-controls="main-nav"
+      aria-label="Abrir menú"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="main-nav" [class.show]="menuOpen">
+      <div class="navbar-nav ms-lg-auto align-items-lg-center gap-lg-2 py-3 py-lg-0">
+        @if (session(); as user) {
+          @if (user.role === 'SCHEDULER') {
+            <a class="nav-link" routerLink="/agendador" routerLinkActive="active-link" (click)="menuOpen = false">
+              Consulta de citas
+            </a>
+          }
+          @if (user.role === 'PATIENT') {
+            <a class="nav-link" routerLink="/paciente" routerLinkActive="active-link" [routerLinkActiveOptions]="{ exact: true }" (click)="menuOpen = false">
+              Mi cuenta
+            </a>
+            <a class="nav-link" routerLink="/paciente/agendar" routerLinkActive="active-link" (click)="menuOpen = false">
+              Agendar cita
+            </a>
+            <a class="nav-link" routerLink="/paciente/disponibilidad" routerLinkActive="active-link" (click)="menuOpen = false">
+              Franjas
+            </a>
+          }
+          @if (user.role === 'ADMINISTRATOR') {
+            <a class="nav-link" routerLink="/admin/configuracion" routerLinkActive="active-link" (click)="menuOpen = false">
+              Configuracion
+            </a>
+          }
+          @if (user.role === 'DOCTOR') {
+            <a class="nav-link" routerLink="/medico" routerLinkActive="active-link" (click)="menuOpen = false">
+              Mi cuenta
+            </a>
+          }
+          <span class="nav-user">{{ user.fullName || user.username }} · {{ roleLabel() }}</span>
+          <button class="btn btn-outline-light btn-sm" type="button" (click)="logout()">Cerrar sesión</button>
+        } @else {
+          <a class="nav-link" routerLink="/login" routerLinkActive="active-link" (click)="menuOpen = false">Ingresar</a>
+          <a class="btn btn-light btn-sm" routerLink="/registro" (click)="menuOpen = false">Crear cuenta</a>
+        }
+      </div>
     </div>
   </div>
 </nav>
-
-<style>
-  .nav-link.active-link,
-  .nav-link:hover {
-    color: #fff !important;
-    background-color: rgba(255, 255, 255, 0.12);
-  }
-</style>

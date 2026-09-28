@@ -2,9 +2,9 @@ import { Routes } from '@angular/router';
 
 export const PATIENT_ROUTES: Routes = [
   {
-    path: 'registro',
+    path: '',
     loadComponent: () =>
-      import('./register/component').then((m) => m.PatientRegisterComponent)
+      import('./home/component').then((m) => m.PatientHomeComponent)
   },
   {
     path: 'agendar',
