@@ -3,6 +3,8 @@ package com.groupsoft.piedrazul.user.domain.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
+
 @Entity
 @Table(name = "app_users")
 @Getter
@@ -25,9 +27,14 @@ public class User {
     private String fullName;
 
     @Column(unique = true)
+    private String email;
+
+    @Column(unique = true)
     private String documentNumber;
 
     private String phone;
+
+    private LocalDate birthDate;
 
     @Enumerated(EnumType.STRING)
     private Role role;

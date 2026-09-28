@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { API_BASE_URL } from '../../api/api-config';
 
 export interface AppointmentResponseDTO {
   id: number;
@@ -23,11 +24,29 @@ export interface AppointmentSearchResultDTO {
   appointments: AppointmentResponseDTO[];
 }
 
+export interface ScheduleAppointmentRequest {
+  documentNumber: string;
+  doctorId: number;
+  slot: string;
+  confirmed: boolean;
+  notes?: string;
+}
+
+export interface ScheduleAppointmentConfirmationDTO {
+  id: number;
+  patientName: string;
+  patientDocument: string;
+  doctorName: string;
+  appointmentDate: string;
+  status: string;
+  message: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class AppointmentService {
-  private baseUrl = 'http://localhost:8080/api/v1';
+  private baseUrl = API_BASE_URL;
 
   constructor(private http: HttpClient) {}
 
@@ -37,6 +56,15 @@ export class AppointmentService {
   ): Observable<AppointmentSearchResultDTO> {
     return this.http.get<AppointmentSearchResultDTO>(
       `${this.baseUrl}/appointments/doctor/${doctorId}?date=${date}`
+    );
+  }
+
+  scheduleAppointment(
+    payload: ScheduleAppointmentRequest
+  ): Observable<ScheduleAppointmentConfirmationDTO> {
+    return this.http.post<ScheduleAppointmentConfirmationDTO>(
+      `${this.baseUrl}/appointments`,
+      payload
     );
   }
 }
