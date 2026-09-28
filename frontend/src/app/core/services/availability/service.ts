@@ -41,23 +41,21 @@ export interface DoctorSchedulingConfigDTO {
   providedIn: 'root'
 })
 export class AvailabilityService {
-  private baseUrl = API_BASE_URL;
-
   constructor(private http: HttpClient) {}
 
   getDoctors(): Observable<DoctorDTO[]> {
-    return this.http.get<DoctorDTO[]>(`${this.baseUrl}/doctors`);
+    return this.http.get<DoctorDTO[]>(`${API_BASE_URL}/doctors`);
   }
 
   getAvailableSlots(doctorId: number, date: string): Observable<AvailableSlotsResultDTO> {
     return this.http.get<AvailableSlotsResultDTO>(
-      `${this.baseUrl}/doctors/${doctorId}/slots?date=${date}`
+      `${API_BASE_URL}/doctors/${doctorId}/slots?date=${date}`
     );
   }
 
   getSchedulingConfig(doctorId: number): Observable<DoctorSchedulingConfigDTO> {
     return this.http.get<DoctorSchedulingConfigDTO>(
-      `${this.baseUrl}/admin/doctors/${doctorId}/scheduling-config`
+      `${API_BASE_URL}/admin/doctors/${doctorId}/scheduling-config`
     );
   }
 
@@ -66,7 +64,7 @@ export class AvailabilityService {
     payload: DoctorSchedulingConfigDTO
   ): Observable<DoctorSchedulingConfigDTO> {
     return this.http.put<DoctorSchedulingConfigDTO>(
-      `${this.baseUrl}/admin/doctors/${doctorId}/scheduling-config`,
+      `${API_BASE_URL}/admin/doctors/${doctorId}/scheduling-config`,
       payload
     );
   }

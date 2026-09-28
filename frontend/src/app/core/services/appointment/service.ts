@@ -46,8 +46,6 @@ export interface ScheduleAppointmentConfirmationDTO {
   providedIn: 'root'
 })
 export class AppointmentService {
-  private baseUrl = API_BASE_URL;
-
   constructor(private http: HttpClient) {}
 
   getAppointmentsByDoctorAndDate(
@@ -55,7 +53,7 @@ export class AppointmentService {
     date: string
   ): Observable<AppointmentSearchResultDTO> {
     return this.http.get<AppointmentSearchResultDTO>(
-      `${this.baseUrl}/appointments/doctor/${doctorId}?date=${date}`
+      `${API_BASE_URL}/appointments/doctor/${doctorId}?date=${date}`
     );
   }
 
@@ -63,7 +61,7 @@ export class AppointmentService {
     payload: ScheduleAppointmentRequest
   ): Observable<ScheduleAppointmentConfirmationDTO> {
     return this.http.post<ScheduleAppointmentConfirmationDTO>(
-      `${this.baseUrl}/appointments`,
+      `${API_BASE_URL}/appointments`,
       payload
     );
   }
