@@ -1,0 +1,46 @@
+@startuml vista-escenarios
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+title Vista de escenarios (4+1) — casos de uso de Piedrazul
+
+actor "Agendador" as Scheduler
+actor "Administrador" as Admin
+actor "Médico" as Doctor
+actor "Paciente" as Patient
+
+rectangle "Piedrazul" {
+  usecase "Iniciar sesión" as Login
+  usecase "Registrarse\ncomo paciente o médico" as Register
+  usecase "Buscar citas\nde un médico en una fecha" as HE01
+  usecase "Ver la tabla\ny el total" as List
+  usecase "Ver el perfil propio" as Profile
+  usecase "Agendar cita\nen una franja" as HE02 <<pendiente>>
+  usecase "Configurar días,\nfranja e intervalo" as HE03 <<pendiente>>
+}
+
+Scheduler --> Login
+Scheduler --> HE01
+Admin --> Login
+Admin --> HE01
+Doctor --> Register
+Doctor --> Login
+Doctor --> HE01
+Patient --> Register
+Patient --> Login
+Patient --> Profile
+
+HE01 ..> Login : <<include>>
+HE01 ..> List : <<include>>
+
+note bottom of HE02
+  No hay página /agendar ni POST de citas.
+  El paciente sí puede registrarse y ver su perfil.
+end note
+
+note bottom of HE03
+  No hay página /admin ni entidad de horario.
+  El administrador entra a la consulta de citas.
+end note
+
+@enduml

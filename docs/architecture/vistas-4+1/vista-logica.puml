@@ -1,0 +1,78 @@
+@startuml vista-logica
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+title Vista lógica (4+1) — modelo de dominio de Piedrazul
+
+package "user" {
+  class User {
+    +id: Long
+    +username: String
+    +password: String
+    +fullName: String
+    +email: String
+    +documentNumber: String
+    +phone: String
+    +birthDate: LocalDate
+    +role: Role
+    +active: boolean
+    +doctorId: Long
+  }
+  enum Role {
+    PATIENT
+    DOCTOR
+    SCHEDULER
+    ADMINISTRATOR
+  }
+  User --> Role
+}
+
+package "availability" {
+  class Doctor {
+    +id: Long
+    +fullName: String
+    +specialty: String
+    +active: boolean
+  }
+}
+
+package "appointment" {
+  class Appointment {
+    +id: Long
+    +patientId: Long
+    +doctorId: Long
+    +appointmentDate: LocalDateTime
+    +status: AppointmentStatus
+    +whatsappNumber: String
+    +notes: String
+  }
+  enum AppointmentStatus {
+    PENDING
+    CONFIRMED
+    CANCELLED
+    COMPLETED
+    RESCHEDULED
+  }
+  interface AppointmentRepositoryPort {
+    +findByDoctorAndDateRange(doctorId, start, end)
+  }
+  Appointment --> AppointmentStatus
+  AppointmentRepositoryPort ..> Appointment
+}
+
+package "shared-kernel" {
+  interface UserQueryPort {
+    +findById(userId)
+  }
+  interface DoctorQueryPort {
+    +findById(doctorId)
+    +existsById(doctorId)
+  }
+}
+
+note bottom of Doctor
+  No hay entidad de horario.
+  La especialidad es un texto, no una clase aparte.
+  patientId y doctorId en Appointment son Long, no asociaciones JPA.
+end note
+
+@enduml

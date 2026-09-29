@@ -1,0 +1,63 @@
+@startuml HE-01-buscar-citas
+title Vista de procesos (4+1) — buscar citas por médico y fecha
+
+actor "Agendador, administrador o médico" as Actor
+participant "AppointmentListComponent" as Page
+participant "authInterceptor" as Inter
+participant "AuthFilter" as Filter
+participant "AppointmentSearchController" as Ctrl
+participant "SearchAppointmentsByDoctorAndDateUseCase" as Uc
+participant "DoctorQueryPort" as Doctors
+participant "AppointmentRepositoryPort" as Citas
+participant "DefaultAppointmentResponseEnricher" as Enrich
+database "PostgreSQL" as Db
+
+Actor -> Page : elige médico y fecha
+Page -> Inter : GET /api/v1/appointments/doctor/{id}?date=
+Inter -> Filter : Authorization Bearer
+alt token inválido o rol PATIENT
+  Filter --> Actor : 401 o 403
+else rol de staff
+  Filter -> Ctrl : continúa
+  Ctrl -> Uc : execute(doctorId, date)
+  Uc -> Doctors : findById
+  Doctors -> Db : tabla doctors
+  Uc -> Citas : findByDoctorAndDateRange
+  Citas -> Db : tabla appointments
+  Uc -> Enrich : nombre del paciente y del médico
+  Enrich --> Uc : DTO
+  Uc --> Page : total y lista
+  Page --> Actor : tabla y badge Total
+end
+
+@enduml
+
+@startuml login
+title Vista de procesos (4+1) — inicio de sesión
+
+actor "Usuario" as Actor
+participant "LoginComponent" as Page
+participant "AuthController" as Ctrl
+participant "LoginUseCase" as Uc
+participant "UserRepository" as Users
+participant "AuthTokenService" as Tokens
+database "PostgreSQL" as Db
+
+Actor -> Page : usuario y contraseña
+Page -> Ctrl : POST /api/v1/auth/login
+note right of Ctrl
+  AuthFilter no cubre esta ruta.
+end note
+Ctrl -> Uc : execute
+Uc -> Users : findByUsernameIgnoreCase
+Users -> Db : tabla app_users
+alt clave incorrecta o usuario inexistente
+  Uc --> Actor : 401 INVALID_CREDENTIALS
+else cuenta activa y clave BCrypt válida
+  Uc --> Ctrl : AuthenticatedUser
+  Ctrl -> Tokens : issue (UUID, 8 horas, memoria)
+  Ctrl --> Page : token, rol y datos de perfil
+  Page --> Actor : navega a /agendador, /medico o /paciente
+end
+
+@enduml

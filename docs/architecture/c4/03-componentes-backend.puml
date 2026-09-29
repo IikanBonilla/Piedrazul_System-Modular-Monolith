@@ -1,0 +1,30 @@
+@startuml componentes
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Diagrama de componentes — monolito modular Piedrazul
+
+Container(spa, "Aplicación web", "Angular 21", "Login, registro, consulta de citas y perfil del paciente.")
+ContainerDb(db, "PostgreSQL", "JDBC", "app_users, doctors, appointments.")
+
+Container_Boundary(api, "Monolito modular Piedrazul") {
+    Component(app, "piedrazul-app", "Spring Web", "Controladores REST, filtro de sesión y arranque del monolito.")
+    Component(users, "Módulo user", "Spring, JPA", "Registro, login, roles y datos de la cuenta.")
+    Component(doctors, "Módulo availability", "Spring, JPA", "Catálogo de médicos y terapeutas: nombre, especialidad y activo.")
+    Component(appts, "Módulo appointment", "Spring, JPA", "Consulta de citas de un médico en una fecha y total.")
+    Component(kernel, "shared-kernel", "Java", "Puertos UserQueryPort y DoctorQueryPort. No usa JPA.")
+}
+
+Rel(spa, app, "Login, registro, médicos y citas", "HTTP JSON /api/v1")
+Rel(app, users, "LoginUseCase y RegisterUserUseCase")
+Rel(app, doctors, "DoctorQueryService")
+Rel(app, appts, "SearchAppointmentsByDoctorAndDateUseCase")
+Rel(appts, kernel, "Consulta médico y paciente sin depender de sus módulos")
+Rel(users, kernel, "UserQueryAdapter implementa UserQueryPort")
+Rel(doctors, kernel, "DoctorQueryAdapter implementa DoctorQueryPort")
+Rel(users, db, "app_users", "JPA")
+Rel(doctors, db, "doctors", "JPA")
+Rel(appts, db, "appointments", "JPA")
+
+@enduml
