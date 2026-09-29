@@ -1,37 +1,32 @@
 @startuml contenedores
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
 
+LAYOUT_LEFT_RIGHT()
 LAYOUT_WITH_LEGEND()
-LAYOUT_TOP_DOWN()
 
-title Piedrazul — C4 nivel 2: contenedores\nDespliegue de desarrollo descrito por el código, no por un orquestador.
+title Diagrama de contenedores — Piedrazul
 
-Person(staff, "Agendador, administrador o médico", "Roles SCHEDULER, ADMINISTRATOR y DOCTOR.")
-Person(patient, "Paciente", "Rol PATIENT.")
+Person(patient, "Paciente", "Se registra y consulta su perfil.")
+Person(scheduler, "Agendador", "Consulta la agenda de los profesionales.")
+Person(admin, "Administrador", "Consulta citas por médico y fecha.")
+Person(doctor, "Médico / Terapeuta", "Consulta citas e inicia sesión.")
 
 System_Boundary(piedrazul, "Piedrazul") {
-    Container(spa, "SPA Angular", "Angular 21, Bootstrap 5, ng serve", "Login, registro, consulta de citas y perfil. Puerto de desarrollo 4200. API_BASE_URL fija en http://localhost:8080/api/v1.")
-    Container(api, "piedrazul-app", "Spring Boot 3.2.5, Java 21", "Un solo proceso. Módulos Maven user, availability, appointment y shared-kernel. API /api/v1 y Swagger en /swagger-ui.html. Puerto 8080.")
-    ContainerDb(db, "PostgreSQL", "JDBC, Hibernate ddl-auto=update", "Tablas app_users, doctors y appointments. URL en application.properties: jdbc:postgresql://localhost:5432/TU_BASE_DE_DATOS.")
+    Container(spa, "Aplicación web", "Angular 21, Bootstrap 5", "Interfaz de login, registro, consulta de citas y perfil. Puerto de desarrollo 4200.")
+    Container(api, "Monolito modular", "Spring Boot 3.2.5, Java 21", "API REST /api/v1 y reglas de negocio. Puerto 8080.")
 }
 
-Rel(staff, spa, "Usa", "Navegador, http://localhost:4200")
-Rel(patient, spa, "Usa", "Navegador, http://localhost:4200")
-Rel(spa, api, "JSON: login, registro, médicos y búsqueda de citas", "HTTP, CORS solo http://localhost:4200")
-Rel(api, db, "Persiste con JPA", "JDBC")
+ContainerDb(db, "PostgreSQL", "JDBC, Hibernate", "Tablas app_users, doctors y appointments. localhost:5432.")
 
-note right of api
-  La sesión no es otro contenedor.
-  AuthTokenService guarda tokens UUID
-  en un ConcurrentHashMap dentro de esta JVM.
-  Se pierden al reiniciar el proceso.
-  No hay JWT ni base de sesiones.
-end note
+Rel(patient, spa, "Usa", "Navegador")
+Rel(scheduler, spa, "Usa", "Navegador")
+Rel(admin, spa, "Usa", "Navegador")
+Rel(doctor, spa, "Usa", "Navegador")
+Rel(spa, api, "JSON", "HTTP, /api/v1")
+Rel(api, db, "Lee y escribe", "JPA / JDBC")
 
-note bottom of db
-  Pendiente / no implementado: contenedor Docker de PostgreSQL.
-  No existe Dockerfile ni docker-compose.yml.
-  El README de la raíz cita docker-compose, pero el archivo no está en el repositorio.
-end note
+Lay_D(patient, scheduler)
+Lay_D(scheduler, admin)
+Lay_D(admin, doctor)
 
 @enduml

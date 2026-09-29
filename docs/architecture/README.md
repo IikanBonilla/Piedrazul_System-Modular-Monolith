@@ -8,10 +8,11 @@ Login, roles y la consulta de citas **sí están implementados**. No aparecen co
 
 | Archivo | Qué muestra |
 |---|---|
-| `c4/01-contexto.puml` | Actores que el código distingue (agendador, administrador, paciente y médico) y PostgreSQL. HE-02 y HE-03 no salen como flujos porque no existen. |
-| `c4/02-contenedores.puml` | Navegador, SPA en el puerto 4200, `piedrazul-app` en el 8080 y PostgreSQL en `localhost:5432`. La sesión vive en memoria de la JVM. |
-| `c4/03-componentes-backend.puml` | Módulos `shared-kernel`, `user`, `availability`, `appointment` y `piedrazul-app`, con los puertos y adaptadores reales. En ámbar, las dependencias directas a JPA. |
-| `c4/04-componentes-frontend.puml` | Rutas Angular, páginas, `AuthService`, `AppointmentService`, `AvailabilityService`, el interceptor y los guards. |
+| `c4/01-contexto.puml` | Administrador, médico, paciente y agendador frente a Piedrazul, y PostgreSQL. Las flechas dicen lo que cada rol hace hoy. |
+| `c4/02-contenedores.puml` | SPA Angular, monolito Spring Boot y PostgreSQL. |
+| `c4/03-componentes-backend.puml` | Módulos `piedrazul-app`, `user`, `availability`, `appointment` y `shared-kernel`, y qué tabla toca cada uno. |
+| `c4/04-componentes-frontend.puml` | Rutas Angular, páginas, servicios, interceptor y guards. |
+| `c4/05-nivel4-citas.puml` | Clases reales del módulo de citas: controlador, caso de uso, puertos y adaptador JPA. |
 
 ## Vistas 4+1
 
@@ -36,14 +37,16 @@ plantuml -tpng docs/architecture/c4/*.puml docs/architecture/vistas-4+1/*.puml
 
 `vista-procesos.puml` y `vista-desarrollo.puml` generan más de una imagen porque contienen varios bloques `@startuml`.
 
+Las imágenes ya generadas para el video están en `c4/img/`: `contexto.png`, `contenedores.png`, `componentes.png` y `nivel4-citas.png`.
+
 También se pueden pegar en el [servidor público de PlantUML](https://www.plantuml.com/plantuml/uml/). Ese servidor necesita salida a `raw.githubusercontent.com` para resolver los `!include` de C4-PlantUML.
 
 ## Qué abrir en el video de arquitectura (2 minutos)
 
-1. `01-contexto.puml`: quién usa el sistema y que la base es PostgreSQL.
-2. `02-contenedores.puml`: Angular, el monolito y la base, en un solo proceso de backend.
-3. `03-componentes-backend.puml`: el caso de uso de búsqueda depende de puertos; `UserQueryAdapter` y `DoctorQueryAdapter` los implementan.
-4. `vista-escenarios.puml`: HE-01 está; HE-02 y HE-03 están marcados como pendientes.
-5. Una frase de la vista de desarrollo: `user`, `availability` y `appointment` solo dependen de `shared-kernel` por Maven.
+1. `01-contexto.puml`: los cuatro actores y PostgreSQL.
+2. `02-contenedores.puml`: Angular, Spring Boot y la base.
+3. `03-componentes-backend.puml`: los módulos del monolito. `appointment` no abre las tablas de usuario ni de médico; usa los puertos del `shared-kernel`.
+4. `05-nivel4-citas.puml`: el caso de uso, el puerto y el adaptador de la consulta de citas.
+5. Una vista 4+1, la de escenarios: HE-01 está implementada.
 
 No hace falta recorrer las cuatro secuencias en esos dos minutos. La de HE-01 sirve después, en el bloque de código.

@@ -1,102 +1,30 @@
-@startuml componentes-backend
+@startuml componentes
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
 
 LAYOUT_WITH_LEGEND()
-LAYOUT_TOP_DOWN()
 
-title Piedrazul — C4 nivel 3: componentes del backend\nMódulos Maven reales, con puertos y adaptadores que sí existen.
+title Diagrama de componentes — monolito modular Piedrazul
 
-AddElementTag("pending", $bgColor="#F8D0D0", $fontColor="#7A1F1F", $borderColor="#B94A48", $legendText="pendiente / no implementado")
-AddElementTag("deviation", $bgColor="#FDE8CD", $fontColor="#6B3E00", $borderColor="#C47B17", $legendText="desviación de la arquitectura hexagonal")
+Container(spa, "Aplicación web", "Angular 21", "Login, registro, consulta de citas y perfil del paciente.")
+ContainerDb(db, "PostgreSQL", "JDBC", "app_users, doctors, appointments.")
 
-Container_Boundary(kernel, "shared-kernel") {
-    Component(userPort, "UserQueryPort", "Java", "findById. Devuelve UserSummary. El módulo de citas no ve la entidad User.")
-    Component(doctorPort, "DoctorQueryPort", "Java", "existsById y findById. Devuelve DoctorSummary.")
-    Component(domainEx, "DomainException", "Java", "Excepción base con código. La extienden Auth, Registration y AppointmentSearch.")
+Container_Boundary(api, "Monolito modular Piedrazul") {
+    Component(app, "piedrazul-app", "Spring Web", "Controladores REST, filtro de sesión y arranque del monolito.")
+    Component(users, "Módulo user", "Spring, JPA", "Registro, login, roles y datos de la cuenta.")
+    Component(doctors, "Módulo availability", "Spring, JPA", "Catálogo de médicos y terapeutas: nombre, especialidad y activo.")
+    Component(appts, "Módulo appointment", "Spring, JPA", "Consulta de citas de un médico en una fecha y total.")
+    Component(kernel, "shared-kernel", "Java", "Puertos UserQueryPort y DoctorQueryPort. No usa JPA.")
 }
 
-Container_Boundary(userMod, "user-module") {
-    Component(loginUc, "LoginUseCase", "Spring @Service", "Valida credenciales, rechaza inactivos y devuelve AuthenticatedUser.")
-    Component(registerUc, "RegisterUserUseCase", "Spring @Service", "Valida con RegistrationRules, evita duplicados y guarda un User con clave BCrypt.")
-    Component(rules, "RegistrationRules", "Java", "Reglas de nombre, usuario, correo, clave, teléfono, documento, fecha y rol público.")
-    Component(userEntity, "User", "JPA @Entity", "Tabla app_users. Campos de cuenta y Role. No es un modelo puro de dominio.")
-    Component(userRepo, "UserRepository", "JpaRepository", "findByUsernameIgnoreCase, findByEmailIgnoreCase, findByDocumentNumber.", $tags="deviation")
-    Component(userAdapter, "UserQueryAdapter", "Spring @Component", "Implementa UserQueryPort leyendo UserRepository.")
-    Component(encoder, "PasswordEncoderConfig", "BCryptPasswordEncoder", "Bean PasswordEncoder. Solo spring-security-crypto, no la cadena de filtros de Spring Security.")
-}
-
-Container_Boundary(availMod, "availability-module") {
-    Component(doctorEntity, "Doctor", "JPA @Entity", "Tabla doctors: id, fullName, specialty, active. Sin días, franja ni intervalo.")
-    Component(doctorRepo, "DoctorRepository", "JpaRepository", "Repositorio Spring Data dentro del paquete domain.", $tags="deviation")
-    Component(doctorService, "DoctorQueryService", "Spring @Service", "findAllActive: trae todos y filtra Doctor.isActive en memoria.")
-    Component(doctorAdapter, "DoctorQueryAdapter", "Spring @Component", "Implementa DoctorQueryPort con DoctorRepository.")
-}
-
-Container_Boundary(apptMod, "appointment-module") {
-    Component(searchUc, "SearchAppointmentsByDoctorAndDateUseCase", "Spring @Service", "HE-01. Valida médico y fecha, busca el rango del día, ordena y arma el total.")
-    Component(apptPort, "AppointmentRepositoryPort", "Java", "Puerto de salida: findByDoctorAndDateRange. El caso de uso no conoce JPA.")
-    Component(apptAdapter, "AppointmentRepositoryAdapter", "Spring @Repository", "Implementa el puerto delegando en AppointmentJpaRepository.")
-    Component(apptJpa, "AppointmentJpaRepository", "JpaRepository", "findByDoctorIdAndAppointmentDateBetween.")
-    Component(apptEntity, "Appointment", "JPA @Entity", "Tabla appointments. patientId y doctorId son Long, sin relación JPA. Estado: PENDING, CONFIRMED, CANCELLED, COMPLETED, RESCHEDULED.")
-    Component(assembler, "AppointmentAssembler", "Spring @Component", "Copia la cita a AppointmentResponseDTO y llama al enriquecedor.")
-    Component(enricher, "AppointmentResponseEnricher", "Java", "Interfaz. Una sola implementación: DefaultAppointmentResponseEnricher.")
-    Component(scheduleRules, "ScheduleRules", "Java", "timeRangeError valida HH:mm. Ningún caso de uso la invoca; solo su prueba.", $tags="pending")
-}
-
-Container_Boundary(appMod, "piedrazul-app") {
-    Component(authFilter, "AuthFilter", "OncePerRequestFilter", "Exige Bearer salvo login, registro y Swagger. 401 si falta o expiró. 403 si el rol no es staff en /appointments y /doctors.")
-    Component(tokenSvc, "AuthTokenService", "Spring @Service", "Emite UUID con TTL de 8 horas en un mapa en memoria.")
-    Component(authCtrl, "AuthController", "REST /api/v1/auth", "POST /login y POST /register.")
-    Component(searchCtrl, "AppointmentSearchController", "REST /api/v1/appointments", "GET /doctor/{doctorId}?date=YYYY-MM-DD.")
-    Component(doctorCtrl, "DoctorController", "REST /api/v1/doctors", "GET lista médicos activos.")
-    Component(registerSvc, "RegisterAccountService", "Spring @Service", "Orquesta el registro. Si el rol es DOCTOR, crea además la fila Doctor.", $tags="deviation")
-    Component(errors, "GlobalExceptionHandler", "RestControllerAdvice", "Traduce excepciones de dominio a 400, 401, 403, 404, 409 o 422.")
-    Component(cors, "CorsConfig", "WebMvcConfigurer", "Permite /api/** solo desde http://localhost:4200.")
-    Component(seed, "DemoDataInitializer", "CommandLineRunner", "Siembra admin, paciente, medico, una doctora y dos citas de mañana.")
-}
-
-Container_Boundary(missing, "Pendiente / no implementado") {
-    Component(bookUc, "Caso de uso de agendar cita", "no existe", "HE-02. No hay POST de citas ni selección de franja.", $tags="pending")
-    Component(configUc, "Caso de uso de configurar disponibilidad", "no existe", "HE-03. No hay entidad de ventana, días, franja ni intervalo, ni API de administración.", $tags="pending")
-}
-
-Rel(authCtrl, loginUc, "Ejecuta")
-Rel(authCtrl, tokenSvc, "Emite el token")
-Rel(authCtrl, registerSvc, "Registra")
-Rel(authFilter, tokenSvc, "Resuelve el Bearer")
-Rel(searchCtrl, searchUc, "Ejecuta")
-Rel(doctorCtrl, doctorService, "Lista activos")
-Rel(registerSvc, registerUc, "Valida y guarda el usuario")
-Rel(registerSvc, doctorRepo, "Inserta Doctor si el rol es DOCTOR", "JPA directa")
-Rel(loginUc, userRepo, "Busca por usuario", "JPA directa")
-Rel(registerUc, rules, "Valida")
-Rel(registerUc, userRepo, "Guarda", "JPA directa")
-Rel(registerUc, encoder, "Hashea la clave")
-Rel(loginUc, encoder, "Compara BCrypt")
-Rel(userAdapter, userPort, "Implementa")
-Rel(userAdapter, userRepo, "Lee")
-Rel(doctorService, doctorRepo, "findAll")
-Rel(doctorAdapter, doctorPort, "Implementa")
-Rel(doctorAdapter, doctorRepo, "Lee")
-Rel(searchUc, doctorPort, "Confirma que el médico existe")
-Rel(searchUc, apptPort, "Busca el día")
-Rel(searchUc, assembler, "Mapea cada cita")
-Rel(assembler, enricher, "Completa nombre y documento")
-Rel(enricher, userPort, "Paciente")
-Rel(enricher, doctorPort, "Médico")
-Rel(apptAdapter, apptPort, "Implementa")
-Rel(apptAdapter, apptJpa, "Delega")
-Rel(apptJpa, apptEntity, "Mapea")
-Rel(userRepo, userEntity, "Mapea")
-Rel(doctorRepo, doctorEntity, "Mapea")
-Rel(errors, domainEx, "Traduce")
-Rel(seed, userRepo, "Siembra usuarios")
-Rel(seed, doctorRepo, "Siembra la doctora")
-Rel(seed, apptJpa, "Siembra dos citas")
-
-note bottom of missing
-  ScheduleRules no sustituye HE-03: solo comprueba que una hora fin
-  sea posterior a la hora inicio y nadie la llama desde un flujo.
-end note
+Rel(spa, app, "Login, registro, médicos y citas", "HTTP JSON /api/v1")
+Rel(app, users, "LoginUseCase y RegisterUserUseCase")
+Rel(app, doctors, "DoctorQueryService")
+Rel(app, appts, "SearchAppointmentsByDoctorAndDateUseCase")
+Rel(appts, kernel, "Consulta médico y paciente sin depender de sus módulos")
+Rel(users, kernel, "UserQueryAdapter implementa UserQueryPort")
+Rel(doctors, kernel, "DoctorQueryAdapter implementa DoctorQueryPort")
+Rel(users, db, "app_users", "JPA")
+Rel(doctors, db, "doctors", "JPA")
+Rel(appts, db, "appointments", "JPA")
 
 @enduml

@@ -1,33 +1,28 @@
 @startuml contexto
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
 
+LAYOUT_LEFT_RIGHT()
 LAYOUT_WITH_LEGEND()
-LAYOUT_TOP_DOWN()
 
-title Piedrazul — C4 nivel 1: contexto\nEstado del código en esta rama. No es una arquitectura objetivo.
+title Diagrama de contexto — Piedrazul\nConsulta de citas médicas
 
-AddElementTag("pending", $bgColor="#F8D0D0", $fontColor="#7A1F1F", $borderColor="#B94A48", $legendText="pendiente / no implementado")
+Person(admin, "Administrador", "Inicia sesión y consulta las citas de un médico en una fecha.")
+Person(doctor, "Médico / Terapeuta", "Se registra o inicia sesión y consulta su agenda.")
+Person(patient, "Paciente", "Se registra, inicia sesión y ve su perfil.")
+Person(scheduler, "Agendador", "Inicia sesión y consulta las citas de los profesionales.")
 
-Person(scheduler, "Agendador", "Rol SCHEDULER. AuthFilter y roleGuard lo aceptan en la consulta de citas. No hay usuario de demostración ni registro público para este rol.")
-Person(admin, "Administrador", "Rol ADMINISTRATOR. Usuario de demostración: admin. Puede consultar citas. No configura parámetros.")
-Person(patient, "Paciente", "Rol PATIENT. Se registra e inicia sesión. Solo ve su perfil. No agenda citas.")
-Person(doctor, "Médico", "Rol DOCTOR, presente en el código además de los tres actores del enunciado. Se registra o usa el usuario medico y consulta citas en /medico.")
+System(piedrazul, "Piedrazul", "Aplicación web de consulta de citas médicas. SPA Angular y monolito modular Spring Boot.")
 
-System(piedrazul, "Piedrazul", "SPA Angular y monolito modular Spring Boot. Hoy cubre consulta de citas por médico y fecha (HE-01), registro e inicio de sesión con rol.")
+System_Ext(db, "PostgreSQL", "Guarda usuarios, médicos y citas.")
 
-System_Ext(postgres, "PostgreSQL", "Persistencia JDBC en localhost:5432. El README menciona Docker, pero no hay docker-compose.yml ni Dockerfile en el repositorio.")
+Rel(admin, piedrazul, "Consulta citas por médico y fecha")
+Rel(doctor, piedrazul, "Consulta citas e inicia sesión")
+Rel(patient, piedrazul, "Se registra y consulta su perfil")
+Rel(scheduler, piedrazul, "Consulta citas por médico y fecha")
+Rel(piedrazul, db, "Lee y escribe usuarios, médicos y citas", "JDBC")
 
-Rel(scheduler, piedrazul, "Consulta las citas de un médico en una fecha", "HTTP")
-Rel(admin, piedrazul, "Consulta las citas de un médico en una fecha", "HTTP")
-Rel(doctor, piedrazul, "Consulta citas e inicia sesión", "HTTP")
-Rel(patient, piedrazul, "Se registra, inicia sesión y ve su perfil", "HTTP")
-Rel(piedrazul, postgres, "Lee y escribe usuarios, médicos y citas", "JDBC")
-
-note bottom of piedrazul
-  Pendiente / no implementado, y por eso no aparece como relación:
-  • HE-02: el paciente no elige franja ni crea una cita.
-  • HE-03: el administrador no configura ventana en semanas, días, horario ni intervalo.
-  WhatsApp no es un sistema externo: appointments.whatsapp_number es solo un texto.
-end note
+Lay_D(admin, doctor)
+Lay_D(doctor, patient)
+Lay_D(patient, scheduler)
 
 @enduml
