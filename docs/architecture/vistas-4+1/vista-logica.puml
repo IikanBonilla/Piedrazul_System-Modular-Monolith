@@ -1,36 +1,10 @@
 @startuml vista-logica
 skinparam classAttributeIconSize 0
 skinparam packageStyle rectangle
-skinparam wrapWidth 220
-title Vista lógica (4+1)\nEntidades, casos de uso y puertos que existen. Las clases en rosa no tienen flujo que las use.
+title Vista lógica (4+1) — modelo de dominio de Piedrazul
 
-package "shared-kernel" #EAF3DE {
-  interface UserQueryPort {
-    +findById(userId): Optional<UserSummary>
-  }
-  interface DoctorQueryPort {
-    +existsById(doctorId): boolean
-    +findById(doctorId): Optional<DoctorSummary>
-  }
-  class UserSummary <<record>> {
-    +id: Long
-    +fullName: String
-    +documentNumber: String
-  }
-  class DoctorSummary <<record>> {
-    +id: Long
-    +fullName: String
-    +specialty: String
-  }
-  class DomainException {
-    +code: String
-  }
-  UserQueryPort ..> UserSummary
-  DoctorQueryPort ..> DoctorSummary
-}
-
-package "user" #E7F0FA {
-  class User <<JPA Entity>> {
+package "user" {
+  class User {
     +id: Long
     +username: String
     +password: String
@@ -44,65 +18,25 @@ package "user" #E7F0FA {
     +doctorId: Long
   }
   enum Role {
-    SCHEDULER
     PATIENT
     DOCTOR
+    SCHEDULER
     ADMINISTRATOR
   }
-  interface UserRepository <<JpaRepository>> {
-    +findByUsernameIgnoreCase(username)
-    +findByEmailIgnoreCase(email)
-    +findByDocumentNumber(documentNumber)
-  }
-  class LoginUseCase {
-    +execute(request): AuthenticatedUser
-  }
-  class RegisterUserUseCase {
-    +execute(request): User
-  }
-  class RegistrationRules <<utility>> {
-    +validate(request, today): Map
-    +toPublicRole(value): Role
-  }
-  class AuthenticatedUser <<record>> {
-    +id: Long
-    +username: String
-    +fullName: String
-    +role: String
-    +doctorId: Long
-    +email: String
-    +phone: String
-  }
   User --> Role
-  UserRepository ..> User
-  LoginUseCase --> UserRepository : depende de JPA\n(no hay puerto)
-  LoginUseCase ..> AuthenticatedUser
-  RegisterUserUseCase --> UserRepository
-  RegisterUserUseCase --> RegistrationRules
-  RegisterUserUseCase ..> User
 }
 
-package "availability" #FFF6E5 {
-  class Doctor <<JPA Entity>> {
+package "availability" {
+  class Doctor {
     +id: Long
     +fullName: String
     +specialty: String
     +active: boolean
   }
-  interface DoctorRepository <<JpaRepository>> {
-    +findAll()
-    +findById(id)
-    +save(doctor)
-  }
-  class DoctorQueryService {
-    +findAllActive(): List<DoctorResponseDTO>
-  }
-  DoctorRepository ..> Doctor
-  DoctorQueryService --> DoctorRepository
 }
 
-package "appointment" #F8EAF6 {
-  class Appointment <<JPA Entity>> {
+package "appointment" {
+  class Appointment {
     +id: Long
     +patientId: Long
     +doctorId: Long
@@ -119,57 +53,26 @@ package "appointment" #F8EAF6 {
     RESCHEDULED
   }
   interface AppointmentRepositoryPort {
-    +findByDoctorAndDateRange(doctorId, start, end): List<Appointment>
-  }
-  class SearchAppointmentsByDoctorAndDateUseCase {
-    +execute(doctorId, date): AppointmentSearchResultDTO
-  }
-  class AppointmentAssembler {
-    +toResponse(appointment): AppointmentResponseDTO
-  }
-  interface AppointmentResponseEnricher {
-    +enrich(appointment, base): AppointmentResponseDTO
-  }
-  class DefaultAppointmentResponseEnricher
-  class ScheduleRules <<sin invocador>> #F8D0D0 {
-    +timeRangeError(start, end): String
+    +findByDoctorAndDateRange(doctorId, start, end)
   }
   Appointment --> AppointmentStatus
   AppointmentRepositoryPort ..> Appointment
-  SearchAppointmentsByDoctorAndDateUseCase --> AppointmentRepositoryPort
-  SearchAppointmentsByDoctorAndDateUseCase --> DoctorQueryPort
-  SearchAppointmentsByDoctorAndDateUseCase --> AppointmentAssembler
-  AppointmentAssembler --> AppointmentResponseEnricher
-  DefaultAppointmentResponseEnricher ..|> AppointmentResponseEnricher
-  DefaultAppointmentResponseEnricher --> UserQueryPort
-  DefaultAppointmentResponseEnricher --> DoctorQueryPort
 }
 
-package "piedrazul-app" #F4F4F4 {
-  class RegisterAccountService {
-    +register(request): User
+package "shared-kernel" {
+  interface UserQueryPort {
+    +findById(userId)
   }
-  class AuthTokenService {
-    +issue(user): IssuedToken
-    +resolve(token): Optional<IssuedToken>
+  interface DoctorQueryPort {
+    +findById(doctorId)
+    +existsById(doctorId)
   }
 }
-
-RegisterAccountService --> RegisterUserUseCase
-RegisterAccountService --> DoctorRepository : si role == DOCTOR
-RegisterAccountService --> UserRepository : guarda doctorId
-AuthTokenService ..> AuthenticatedUser
 
 note bottom of Doctor
-  Doctor no tiene ventana en semanas, días de atención,
-  franja horaria ni intervalo entre citas.
-  Esos datos de HE-03 no están modelados.
-end note
-
-note bottom of Appointment
-  patientId y doctorId no son asociaciones JPA.
-  No hay método de dominio para crear, cancelar o reprogramar.
-  El estado solo se lee en la consulta.
+  No hay entidad de horario.
+  La especialidad es un texto, no una clase aparte.
+  patientId y doctorId en Appointment son Long, no asociaciones JPA.
 end note
 
 @enduml

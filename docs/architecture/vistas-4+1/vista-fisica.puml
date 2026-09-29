@@ -1,22 +1,18 @@
 @startuml vista-fisica
 skinparam shadowing false
-title Vista física (4+1) — despliegue que describe el código hoy\nUn equipo de desarrollo. No hay artefactos de contenedor en el repositorio.
+title Vista física (4+1) — despliegue de desarrollo de Piedrazul
 
-node "Equipo de desarrollo" as Host {
-  node "Navegador" as Browser {
-    artifact "SPA Angular\nlogin, registro, consulta, perfil" as Spa
+node "Equipo de desarrollo" {
+  node "Navegador" {
+    artifact "SPA Angular\nlogin, registro,\nconsulta y perfil" as Spa
   }
-
-  node "Proceso ng serve\n:4200" as Ng <<desarrollo>> {
-    artifact "frontend/\nAngular 21" as FeBuild
+  node "ng serve :4200" as Ng {
+    artifact "frontend/" as Fe
   }
-
-  node "JVM\nSpring Boot :8080" as Jvm {
-    artifact "piedrazul-app" as Jar
-    component "AuthTokenService\nConcurrentHashMap\nTTL 8 horas" as Mem
-    component "Swagger UI\n/swagger-ui.html" as Swagger
+  node "JVM Spring Boot :8080" as Jvm {
+    artifact "piedrazul-app" as Api
+    component "AuthTokenService\nmapa en memoria\n8 horas" as Tokens
   }
-
   database "PostgreSQL\nlocalhost:5432" as Db {
     storage "app_users" as T1
     storage "doctors" as T2
@@ -24,28 +20,15 @@ node "Equipo de desarrollo" as Host {
   }
 }
 
-together {
-  node "Contenedor Docker con PostgreSQL" as Docker <<pendiente / no implementado>> #F8D0D0
-  note bottom of Docker
-    No está conectado a ningún nodo: no hay despliegue Docker.
-    No existe Dockerfile ni docker-compose.yml.
-    El README de la raíz dice "docker-compose up -d",
-    pero ese archivo no está en el repositorio.
-    La base que sí usa el proceso es el PostgreSQL de localhost,
-    por application.properties.
-  end note
-}
+Spa -down-> Fe : carga la SPA
+Spa -right-> Api : HTTP JSON\n/api/v1
+Api -down-> Db : JDBC\nHibernate ddl-auto=update
+Api -right-> Tokens : la sesión no sale de la JVM
 
-Browser -down-> FeBuild : carga la SPA
-Spa -right-> Jar : HTTP JSON\nhttp://localhost:8080/api/v1
-Jar -down-> Db : JDBC\njdbc:postgresql://localhost:5432/TU_BASE_DE_DATOS\nHibernate ddl-auto=update
-Jar -right-> Mem : tokens de sesión\nno salen de la JVM
-Jar -up-> Swagger : springdoc
-
-note right of Mem
-  Reiniciar la JVM invalida todas las sesiones.
-  No hay volumen, tabla ni servicio aparte para los tokens.
-  CorsConfig solo acepta el origen http://localhost:4200.
+note bottom of Db
+  No hay Dockerfile ni docker-compose.yml.
+  La URL está en application.properties.
+  CORS solo permite http://localhost:4200.
 end note
 
 @enduml

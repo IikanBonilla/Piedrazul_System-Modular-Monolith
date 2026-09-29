@@ -18,11 +18,11 @@ Login, roles y la consulta de citas **sí están implementados**. No aparecen co
 
 | Archivo | Qué muestra |
 |---|---|
-| `vistas-4+1/vista-escenarios.puml` | Casos de uso de HE-01, HE-02 y HE-03. HE-01 incluye la tabla y el total. HE-02 y HE-03 quedan en estereotipo pendiente. El registro sí está, como prerrequisito, y no crea citas. |
-| `vistas-4+1/vista-logica.puml` | Clases de `User`, `Doctor` y `Appointment`, los tres casos de uso y los puertos `UserQueryPort`, `DoctorQueryPort` y `AppointmentRepositoryPort`. |
-| `vistas-4+1/vista-procesos.puml` | Cuatro secuencias en el mismo archivo: búsqueda HE-01, el hueco de HE-02, el registro que sí existe, y el hueco de HE-03. |
-| `vistas-4+1/vista-desarrollo.puml` | Dos diagramas: dependencias Maven (los módulos de negocio no se referencian entre sí; los une `piedrazul-app`) y el corte hexagonal por paquetes. |
-| `vistas-4+1/vista-fisica.puml` | Navegador, `ng serve`, JVM de Spring Boot y PostgreSQL local. El nodo Docker está dibujado en rojo porque el repositorio no tiene `Dockerfile` ni `docker-compose.yml`. |
+| `vistas-4+1/vista-escenarios.puml` | Casos de uso: login, registro, búsqueda con tabla y total, perfil. Agendar y configurar horario quedan en `<<pendiente>>`. |
+| `vistas-4+1/vista-logica.puml` | Clases `User`, `Role`, `Doctor`, `Appointment` y `AppointmentStatus`, más los tres puertos. |
+| `vistas-4+1/vista-procesos.puml` | Dos secuencias: buscar citas (HE-01) e iniciar sesión. |
+| `vistas-4+1/vista-desarrollo.puml` | Carpetas de Angular y módulos Maven, y que `piedrazul-app` es quien une los módulos. |
+| `vistas-4+1/vista-fisica.puml` | Navegador, `ng serve` en el 4200, JVM en el 8080 y PostgreSQL en `localhost:5432`. |
 
 El detalle de patrones está en `patrones-de-diseno.md`. Los escenarios de usabilidad y seguridad están en `escenarios-de-calidad.md`.
 
@@ -37,7 +37,7 @@ plantuml -tpng docs/architecture/c4/*.puml docs/architecture/vistas-4+1/*.puml
 
 `vista-procesos.puml` y `vista-desarrollo.puml` generan más de una imagen porque contienen varios bloques `@startuml`.
 
-Las imágenes ya generadas para el video están en `c4/img/`: `contexto.png`, `contenedores.png`, `componentes.png` y `nivel4-citas.png`.
+Las imágenes ya generadas para el video están en `c4/img/` (C4) y en `vistas-4+1/img/` (casos de uso, lógica, procesos de búsqueda, login, desarrollo y física).
 
 También se pueden pegar en el [servidor público de PlantUML](https://www.plantuml.com/plantuml/uml/). Ese servidor necesita salida a `raw.githubusercontent.com` para resolver los `!include` de C4-PlantUML.
 

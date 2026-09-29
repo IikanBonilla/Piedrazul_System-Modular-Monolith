@@ -1,176 +1,63 @@
 @startuml HE-01-buscar-citas
-title Vista de procesos — HE-01 Buscar citas por médico y fecha\nFlujo implementado
+title Vista de procesos (4+1) — buscar citas por médico y fecha
 
 actor "Agendador, administrador o médico" as Actor
 participant "AppointmentListComponent" as Page
-participant "validators.ts" as Val
-participant "AvailabilityService" as Avail
-participant "AppointmentService" as ApptApi
 participant "authInterceptor" as Inter
 participant "AuthFilter" as Filter
-participant "AuthTokenService" as Tokens
 participant "AppointmentSearchController" as Ctrl
 participant "SearchAppointmentsByDoctorAndDateUseCase" as Uc
-participant "DoctorQueryPort" as DoctorPort
-participant "AppointmentRepositoryPort" as ApptPort
-participant "AppointmentAssembler" as Asm
+participant "DoctorQueryPort" as Doctors
+participant "AppointmentRepositoryPort" as Citas
 participant "DefaultAppointmentResponseEnricher" as Enrich
-participant "UserQueryPort" as UserPort
+database "PostgreSQL" as Db
 
-== Carga del combo ==
-Actor -> Page : abre /agendador o /medico
-Page -> Avail : getDoctors()
-Avail -> Inter : GET /api/v1/doctors
+Actor -> Page : elige médico y fecha
+Page -> Inter : GET /api/v1/appointments/doctor/{id}?date=
 Inter -> Filter : Authorization Bearer
-Filter -> Tokens : resolve(token)
-alt token ausente, vencido o rol PATIENT
-  Filter --> Page : 401 o 403
-else rol ADMINISTRATOR, SCHEDULER o DOCTOR
-  Filter -> Ctrl : continúa hacia DoctorController
-  Ctrl --> Page : DoctorResponseDTO activos
-end
-
-== Búsqueda ==
-Actor -> Page : elige médico, fecha y pulsa Buscar
-Page -> Val : appointmentDateError y médico obligatorio
-alt falta médico o la fecha no es válida
-  Page --> Actor : error junto al campo\nsin llamar a la API
-else criterios locales válidos
-  Page -> ApptApi : getAppointmentsByDoctorAndDate(id, date)
-  ApptApi -> Inter : GET /api/v1/appointments/doctor/{id}?date=
-  Inter -> Filter : Bearer
-  Filter -> Tokens : resolve(token)
-  Filter -> Ctrl : rol de staff
+alt token inválido o rol PATIENT
+  Filter --> Actor : 401 o 403
+else rol de staff
+  Filter -> Ctrl : continúa
   Ctrl -> Uc : execute(doctorId, date)
-  Uc -> Uc : validateSearchCriteria
-  alt doctorId o date nulos
-    Uc --> Ctrl : AppointmentSearchException\nMISSING_DOCTOR o MISSING_DATE
-    Ctrl --> Page : 400
-  else
-    Uc -> DoctorPort : findById(doctorId)
-    alt el médico no existe
-      Uc --> Page : 404 DOCTOR_NOT_FOUND
-    else
-      Uc -> ApptPort : findByDoctorAndDateRange\ninicio y fin de ese día
-      loop cada cita, ordenada por appointmentDate
-        Uc -> Asm : toResponse(appointment)
-        Asm -> Enrich : enrich(appointment, dto)
-        Enrich -> UserPort : findById(patientId)
-        Enrich -> DoctorPort : findById(doctorId)
-      end
-      Uc --> Page : AppointmentSearchResultDTO\ncon total = tamaño de la lista
-      alt total = 0
-        Page --> Actor : estado vacío
-      else total > 0
-        Page --> Actor : tabla y badge Total
-      end
-    end
-  end
+  Uc -> Doctors : findById
+  Doctors -> Db : tabla doctors
+  Uc -> Citas : findByDoctorAndDateRange
+  Citas -> Db : tabla appointments
+  Uc -> Enrich : nombre del paciente y del médico
+  Enrich --> Uc : DTO
+  Uc --> Page : total y lista
+  Page --> Actor : tabla y badge Total
 end
 
-note over Actor, UserPort
-  El paciente no entra a este flujo.
-  AuthFilter rechaza PATIENT en /api/v1/appointments y /api/v1/doctors.
-  roleGuard impide abrir /agendador y /medico con ese rol.
-end note
-
 @enduml
 
-@startuml HE-02-agendar-cita
-title Vista de procesos — HE-02 Agendar cita\nPENDIENTE / NO IMPLEMENTADO
+@startuml login
+title Vista de procesos (4+1) — inicio de sesión
 
-actor "Paciente" as Paciente
-participant "PatientHomeComponent" as Home
-participant "API REST" as API
-
-note over Paciente, API #F8D0D0
-  No existe este proceso.
-  No hay página para elegir médico y franja.
-  No hay POST /api/v1/appointments.
-  No hay caso de uso que cree un Appointment.
-  PatientHomeComponent no llama a AppointmentService.
-end note
-
-Paciente -> Home : entra a /paciente tras iniciar sesión
-Home --> Paciente : muestra usuario, correo, teléfono y rol
-
-note over Paciente
-  Lo único relacionado y sí implementado es el registro,
-  que el enunciado pide como requisito para poder agendar.
-  Ese flujo no crea una cita. Ver el diagrama siguiente.
-end note
-
-@enduml
-
-@startuml registro-prerrequisito-de-HE-02
-title Vista de procesos — registro de paciente o médico\nImplementado. No es el agendamiento de HE-02.
-
-actor "Persona anónima" as Actor
-participant "RegisterComponent" as Page
-participant "validators.ts" as Val
-participant "AuthService" as Auth
+actor "Usuario" as Actor
+participant "LoginComponent" as Page
 participant "AuthController" as Ctrl
-participant "RegisterAccountService" as Svc
-participant "RegisterUserUseCase" as Uc
-participant "RegistrationRules" as Rules
+participant "LoginUseCase" as Uc
 participant "UserRepository" as Users
-participant "DoctorRepository" as Doctors
+participant "AuthTokenService" as Tokens
+database "PostgreSQL" as Db
 
-Actor -> Page : envía el formulario
-Page -> Val : nombre, usuario, correo, clave,\nteléfono, documento, fecha y rol
-alt hay un error local
-  Page --> Actor : mensaje en el campo
-else el formulario local pasa
-  Page -> Auth : register(payload)
-  Auth -> Ctrl : POST /api/v1/auth/register\nsin Bearer; AuthFilter no filtra esta ruta
-  Ctrl -> Svc : register(request)
-  Svc -> Uc : execute(request)
-  Uc -> Rules : validate(request, hoy)
-  alt reglas o duplicado de usuario, correo o documento
-    Uc --> Page : 400 VALIDATION o 409 DUPLICATE
-  else datos nuevos
-    Uc -> Users : save(User con clave BCrypt,\nrol PATIENT o DOCTOR, active=true)
-    alt rol DOCTOR
-      Svc -> Doctors : save(Doctor fullName, specialty, active)
-      Svc -> Users : save(user.doctorId)
-    else rol PATIENT
-      Svc --> Ctrl : User sin doctorId
-    end
-    Ctrl --> Actor : 201 y mensaje para iniciar sesión
-  end
+Actor -> Page : usuario y contraseña
+Page -> Ctrl : POST /api/v1/auth/login
+note right of Ctrl
+  AuthFilter no cubre esta ruta.
+end note
+Ctrl -> Uc : execute
+Uc -> Users : findByUsernameIgnoreCase
+Users -> Db : tabla app_users
+alt clave incorrecta o usuario inexistente
+  Uc --> Actor : 401 INVALID_CREDENTIALS
+else cuenta activa y clave BCrypt válida
+  Uc --> Ctrl : AuthenticatedUser
+  Ctrl -> Tokens : issue (UUID, 8 horas, memoria)
+  Ctrl --> Page : token, rol y datos de perfil
+  Page --> Actor : navega a /agendador, /medico o /paciente
 end
-
-note over Rules
-  RegistrationRules rechaza ADMINISTRATOR y SCHEDULER
-  en el formulario público.
-end note
-
-@enduml
-
-@startuml HE-03-configurar-disponibilidad
-title Vista de procesos — HE-03 Configurar disponibilidad\nPENDIENTE / NO IMPLEMENTADO
-
-actor "Administrador" as Admin
-participant "AppointmentListComponent\n/agendador" as Page
-participant "API REST" as API
-
-note over Admin, API #F8D0D0
-  No existe este proceso.
-  No hay ruta, formulario ni controlador para configurar
-  ventana en semanas, días de atención, franja horaria
-  ni intervalo entre citas.
-  La entidad Doctor solo tiene fullName, specialty y active.
-  ScheduleRules.timeRangeError no tiene invocador.
-end note
-
-Admin -> Page : inicia sesión como admin
-Page --> Admin : la misma consulta de citas de HE-01
-
-note over API
-  No hay GET ni PUT de parámetros.
-  Un administrador autenticado solo puede llamar
-  a los endpoints de staff que ya existen:
-  GET /api/v1/doctors y GET /api/v1/appointments/doctor/{id}.
-end note
 
 @enduml
