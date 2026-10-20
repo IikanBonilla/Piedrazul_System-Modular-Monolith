@@ -1,0 +1,32 @@
+@startuml contenedores
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_LEFT_RIGHT()
+LAYOUT_WITH_LEGEND()
+
+title Diagrama de contenedores — Piedrazul
+
+Person(patient, "Paciente", "Se registra y consulta su perfil.")
+Person(scheduler, "Agendador", "Consulta la agenda de los profesionales.")
+Person(admin, "Administrador", "Consulta citas por médico y fecha.")
+Person(doctor, "Médico / Terapeuta", "Consulta citas e inicia sesión.")
+
+System_Boundary(piedrazul, "Piedrazul") {
+    Container(spa, "Aplicación web", "Angular 21, Bootstrap 5", "Interfaz de login, registro, consulta de citas y perfil. Puerto de desarrollo 4200.")
+    Container(api, "Monolito modular", "Spring Boot 3.2.5, Java 21", "API REST /api/v1 y reglas de negocio. Puerto 8080.")
+}
+
+ContainerDb(db, "PostgreSQL", "JDBC, Hibernate", "Tablas app_users, doctors y appointments. localhost:5432.")
+
+Rel(patient, spa, "Usa", "Navegador")
+Rel(scheduler, spa, "Usa", "Navegador")
+Rel(admin, spa, "Usa", "Navegador")
+Rel(doctor, spa, "Usa", "Navegador")
+Rel(spa, api, "JSON", "HTTP, /api/v1")
+Rel(api, db, "Lee y escribe", "JPA / JDBC")
+
+Lay_D(patient, scheduler)
+Lay_D(scheduler, admin)
+Lay_D(admin, doctor)
+
+@enduml

@@ -1,0 +1,28 @@
+@startuml contexto
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_LEFT_RIGHT()
+LAYOUT_WITH_LEGEND()
+
+title Diagrama de contexto — Piedrazul\nConsulta de citas médicas
+
+Person(admin, "Administrador", "Inicia sesión y consulta las citas de un médico en una fecha.")
+Person(doctor, "Médico / Terapeuta", "Se registra o inicia sesión y consulta su agenda.")
+Person(patient, "Paciente", "Se registra, inicia sesión y ve su perfil.")
+Person(scheduler, "Agendador", "Inicia sesión y consulta las citas de los profesionales.")
+
+System(piedrazul, "Piedrazul", "Aplicación web de consulta de citas médicas. SPA Angular y monolito modular Spring Boot.")
+
+System_Ext(db, "PostgreSQL", "Guarda usuarios, médicos y citas.")
+
+Rel(admin, piedrazul, "Consulta citas por médico y fecha")
+Rel(doctor, piedrazul, "Consulta citas e inicia sesión")
+Rel(patient, piedrazul, "Se registra y consulta su perfil")
+Rel(scheduler, piedrazul, "Consulta citas por médico y fecha")
+Rel(piedrazul, db, "Lee y escribe usuarios, médicos y citas", "JDBC")
+
+Lay_D(admin, doctor)
+Lay_D(doctor, patient)
+Lay_D(patient, scheduler)
+
+@enduml

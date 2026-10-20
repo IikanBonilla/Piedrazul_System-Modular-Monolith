@@ -1,0 +1,75 @@
+@startuml vista-desarrollo
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+title Vista de desarrollo (4+1) — organización del código de Piedrazul
+
+package "frontend (Angular 21)" {
+  package "pages" {
+    [auth/login] as Login
+    [auth/register] as Register
+    [scheduler/appointment-list] as List
+    [patient/home] as Profile
+  }
+  package "core" {
+    [auth.service] as AuthSvc
+    [auth.guard] as Guard
+    [auth.interceptor] as Inter
+    [appointment/service] as ApptSvc
+    [availability/service] as DocSvc
+  }
+}
+
+package "backend (Maven)" {
+  package "shared-kernel" {
+    [UserQueryPort] as UP
+    [DoctorQueryPort] as DP
+  }
+  package "user-module" {
+    [LoginUseCase] as LoginUc
+    [RegisterUserUseCase] as RegUc
+    [UserQueryAdapter] as UAd
+  }
+  package "availability-module" {
+    [DoctorQueryService] as DocSvcB
+    [DoctorQueryAdapter] as DAd
+  }
+  package "appointment-module" {
+    [SearchAppointmentsByDoctorAndDateUseCase] as Search
+    [AppointmentRepositoryAdapter] as AAd
+  }
+  package "piedrazul-app" {
+    [AuthController] as AuthCtrl
+    [AppointmentSearchController] as ApptCtrl
+    [DoctorController] as DocCtrl
+    [AuthFilter] as Filter
+  }
+}
+
+Login --> AuthSvc
+Register --> AuthSvc
+List --> ApptSvc
+List --> DocSvc
+Guard --> AuthSvc
+Inter --> AuthSvc
+
+AuthSvc ..> AuthCtrl : HTTP /api/v1
+ApptSvc ..> ApptCtrl : HTTP /api/v1
+DocSvc ..> DocCtrl : HTTP /api/v1
+
+AuthCtrl --> LoginUc
+AuthCtrl --> RegUc
+AuthCtrl --> Filter
+ApptCtrl --> Search
+DocCtrl --> DocSvcB
+Search --> DP
+Search --> AAd
+UAd ..|> UP
+DAd ..|> DP
+
+note bottom of Search
+  user, availability y appointment
+  solo dependen de shared-kernel.
+  piedrazul-app es el único que los une.
+end note
+
+@enduml

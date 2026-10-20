@@ -1,0 +1,45 @@
+@startuml nivel4-citas
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_LEFT_RIGHT()
+LAYOUT_WITH_LEGEND()
+
+title C4 nivel 4 — módulo appointment\nConsulta de citas por médico y fecha (HE-01)
+
+Container_Boundary(apiLayer, "piedrazul-app") {
+    Component(ctrl, "AppointmentSearchController", "REST", "GET /api/v1/appointments/doctor/{doctorId}?date=")
+}
+
+Container_Boundary(application, "appointment.application") {
+    Component(usecase, "SearchAppointmentsByDoctorAndDateUseCase", "caso de uso", "Valida, busca el día, ordena y calcula el total.")
+    Component(assembler, "AppointmentAssembler", "mapeo", "Pasa la cita al enriquecedor.")
+    Component(enricher, "DefaultAppointmentResponseEnricher", "enriquecedor", "Completa nombre del paciente y del médico.")
+}
+
+Container_Boundary(domain, "appointment.domain") {
+    Component(port, "AppointmentRepositoryPort", "puerto", "findByDoctorAndDateRange.")
+    Component(entity, "Appointment", "entidad JPA", "patientId, doctorId, fecha, estado, WhatsApp y notas.")
+    Component(status, "AppointmentStatus", "enum", "PENDING, CONFIRMED, CANCELLED, COMPLETED, RESCHEDULED.")
+}
+
+Container_Boundary(infra, "appointment.infrastructure") {
+    Component(adapter, "AppointmentRepositoryAdapter", "adaptador", "Implementa el puerto.")
+    Component(jpa, "AppointmentJpaRepository", "Spring Data", "findByDoctorIdAndAppointmentDateBetween.")
+}
+
+Component(doctorPort, "DoctorQueryPort", "shared-kernel", "findById del médico.")
+Component(userPort, "UserQueryPort", "shared-kernel", "findById del paciente.")
+
+Rel(ctrl, usecase, "execute")
+Rel(usecase, doctorPort, "comprueba que el médico existe")
+Rel(usecase, port, "busca el rango del día")
+Rel(usecase, assembler, "mapea cada cita")
+Rel(assembler, enricher, "enrich")
+Rel(enricher, userPort, "nombre y documento")
+Rel(enricher, doctorPort, "nombre del médico")
+Rel(adapter, port, "implementa")
+Rel(adapter, jpa, "delega")
+Rel(jpa, entity, "lee")
+Rel(entity, status, "usa")
+
+@enduml

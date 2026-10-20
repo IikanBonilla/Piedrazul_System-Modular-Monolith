@@ -1,0 +1,34 @@
+@startuml vista-fisica
+skinparam shadowing false
+title Vista física (4+1) — despliegue de desarrollo de Piedrazul
+
+node "Equipo de desarrollo" {
+  node "Navegador" {
+    artifact "SPA Angular\nlogin, registro,\nconsulta y perfil" as Spa
+  }
+  node "ng serve :4200" as Ng {
+    artifact "frontend/" as Fe
+  }
+  node "JVM Spring Boot :8080" as Jvm {
+    artifact "piedrazul-app" as Api
+    component "AuthTokenService\nmapa en memoria\n8 horas" as Tokens
+  }
+  database "PostgreSQL\nlocalhost:5432" as Db {
+    storage "app_users" as T1
+    storage "doctors" as T2
+    storage "appointments" as T3
+  }
+}
+
+Spa -down-> Fe : carga la SPA
+Spa -right-> Api : HTTP JSON\n/api/v1
+Api -down-> Db : JDBC\nHibernate ddl-auto=update
+Api -right-> Tokens : la sesión no sale de la JVM
+
+note bottom of Db
+  No hay Dockerfile ni docker-compose.yml.
+  La URL está en application.properties.
+  CORS solo permite http://localhost:4200.
+end note
+
+@enduml

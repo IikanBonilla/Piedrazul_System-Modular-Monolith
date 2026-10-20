@@ -1,0 +1,69 @@
+@startuml componentes-frontend
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+LAYOUT_TOP_DOWN()
+
+title Piedrazul — C4 nivel 3: componentes del frontend\nPáginas, servicios y rutas que existen en frontend/src/app.
+
+AddElementTag("pending", $bgColor="#F8D0D0", $fontColor="#7A1F1F", $borderColor="#B94A48", $legendText="pendiente / no implementado")
+
+Container_Boundary(spa, "SPA Angular") {
+    Component(root, "App", "standalone", "Renderiza NavbarComponent y router-outlet.")
+    Component(routes, "app.routes.ts", "Angular Router", "La ruta vacía redirige según la sesión. También declara /login, /registro, /acceso-denegado, /agendador, /medico y /paciente.")
+    Component(schedRoutes, "scheduler/routes.ts", "lazy loadComponent", "Ruta hija vacía: AppointmentListComponent. La usan /agendador y /medico.")
+
+    Component(login, "LoginComponent", "Reactive Forms", "/login. Si ya hay sesión, navega a homeRoute().")
+    Component(register, "RegisterComponent", "Reactive Forms", "/registro. Alta de PATIENT o DOCTOR.")
+    Component(forbidden, "ForbiddenComponent", "standalone", "/acceso-denegado.")
+    Component(list, "AppointmentListComponent", "template-driven", "Filtro de médico y fecha, tabla y total. Valida antes de llamar a la API.")
+    Component(patientHome, "PatientHomeComponent", "standalone", "/paciente. Muestra usuario, correo, teléfono y rol. No llama a citas.")
+    Component(navbar, "NavbarComponent", "standalone", "Nombre, etiqueta de rol y cierre de sesión local.")
+    Component(redirect, "HomeRedirectComponent y homeRedirectGuard", "CanActivateFn", "Manda a /login o a la ruta del rol.")
+    Component(guard, "roleGuard", "CanActivateFn", "Sin sesión va a /login. Rol distinto va a /acceso-denegado.")
+
+    Component(authSvc, "AuthService", "providedIn root, signal", "POST /auth/login y /auth/register. Guarda la sesión en sessionStorage bajo piedrazul.session.")
+    Component(apptSvc, "AppointmentService", "HttpClient", "GET /appointments/doctor/{id}?date=")
+    Component(availSvc, "AvailabilityService", "HttpClient", "GET /doctors. No consulta franjas ni parámetros.")
+    Component(interceptor, "authInterceptor", "HttpInterceptorFn", "Agrega Authorization Bearer. Ante 401, fuera del login, cierra sesión y va a /login?reason=sesion.")
+    Component(validators, "validators.ts", "funciones puras", "Reglas de registro y de fecha de cita, duplicadas respecto del backend. timeRangeError existe y solo lo usa su prueba: ninguna página lo llama.")
+    Component(api, "API_BASE_URL", "constante", "http://localhost:8080/api/v1")
+}
+
+Container_Boundary(missing, "Pendiente / no implementado") {
+    Component(bookPage, "Página para agendar cita", "no existe", "HE-02. El paciente no ve médicos ni franjas.", $tags="pending")
+    Component(adminPage, "Página de parámetros", "no existe", "HE-03. No hay ruta de administrador distinta de /agendador.", $tags="pending")
+}
+
+Rel(root, navbar, "Incluye")
+Rel(root, routes, "Enruta")
+Rel(routes, guard, "Protege /agendador, /medico y /paciente")
+Rel(routes, redirect, "Protege ''")
+Rel(routes, login, "/login")
+Rel(routes, register, "/registro")
+Rel(routes, forbidden, "/acceso-denegado")
+Rel(routes, patientHome, "/paciente, solo PATIENT")
+Rel(routes, schedRoutes, "/agendador para ADMINISTRATOR y SCHEDULER; /medico para DOCTOR")
+Rel(schedRoutes, list, "Carga perezosa")
+Rel(login, authSvc, "login()")
+Rel(register, authSvc, "register()")
+Rel(register, validators, "Errores por campo")
+Rel(list, validators, "appointmentDateError")
+Rel(list, apptSvc, "Busca")
+Rel(list, availSvc, "Carga el combo de médicos")
+Rel(navbar, authSvc, "Lee session() y logout()")
+Rel(guard, authSvc, "isLoggedIn y rol")
+Rel(interceptor, authSvc, "token()")
+Rel(authSvc, api, "Prefijo")
+Rel(apptSvc, api, "Prefijo")
+Rel(availSvc, api, "Prefijo")
+Rel(apptSvc, interceptor, "HttpClient pasa por el interceptor")
+Rel(availSvc, interceptor, "HttpClient pasa por el interceptor")
+Rel(authSvc, interceptor, "El login no lleva token; el interceptor lo deja pasar")
+
+note bottom of patientHome
+  /agendador y /medico comparten AppointmentListComponent.
+  La diferencia visible es el texto Médico o Administración, según router.url.
+end note
+
+@enduml
