@@ -33,8 +33,10 @@ Se pueden sobreescribir con `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `PO
 
 ## Ejecucion
 
+Keycloak tiene que estar arriba antes que el backend: la API descarga las llaves del issuer al arrancar.
+
 ```bash
-# PostgreSQL
+# PostgreSQL y Keycloak
 docker compose up -d
 
 # Backend (desde la raiz del repo)
@@ -46,8 +48,41 @@ npm install
 npm start
 ```
 
-- App: http://localhost:4200/agendador
+- App: http://localhost:4200
 - Swagger: http://localhost:8080/swagger-ui.html
+- Keycloak: http://localhost:8081 (admin / admin)
+
+## Autenticacion con Keycloak (RNF1)
+
+La contraseña ya no se valida en el monolito. Keycloak emite el JWT y Spring Security lo valida como OAuth2 Resource Server.
+
+| Dato | Valor |
+|------|--------|
+| Realm | `piedrazul` |
+| Issuer | `http://localhost:8081/realms/piedrazul` |
+| Client publico | `piedrazul-web` (sin secreto, Authorization Code + PKCE y password grant) |
+| Origen del frontend | `http://localhost:4200` |
+| Consola de administracion | `http://localhost:8081` con `admin` / `admin` |
+| Roles de realm | `PATIENT`, `DOCTOR`, `SCHEDULER`, `ADMINISTRATOR` |
+
+El realm, los roles, el client y los usuarios semilla se importan desde `keycloak/import/piedrazul-realm.json` al arrancar el contenedor. Esos usuarios coinciden con la ficha clinica que crea `DemoDataInitializer`.
+
+| Usuario | Contraseña | Rol |
+|---------|------------|-----|
+| `paciente` | `paciente123` | `PATIENT` |
+| `medico` | `medico123` | `DOCTOR` |
+| `agendador` | `agendador123` | `SCHEDULER` |
+| `admin` | `admin123` | `ADMINISTRATOR` |
+
+El frontend pide el token directo al client publico y luego llama `GET /api/v1/auth/me` para completar la ficha local. El registro publico sigue en `POST /api/v1/auth/register`: guarda la ficha clinica y crea el usuario en Keycloak con el mismo rol.
+
+Si el realm se creo vacio, la coleccion `docs/rnf1/postman/piedrazul-keycloak-seed.postman_collection.json` crea los cuatro usuarios por la Admin API y deja resuelta la asignacion del rol `PATIENT`. Para los otros tres se repite la busqueda del usuario y el `role-mapping` con `DOCTOR`, `SCHEDULER` y `ADMINISTRATOR`.
+
+Decision de alcance, escenarios de calidad y diagrama:
+
+- `docs/rnf1/decision-migracion-keycloak.md`
+- `docs/rnf1/escenarios-calidad-seguridad.md`
+- `docs/rnf1/flujo-autenticacion.md`
 
 ## API HE-01
 
