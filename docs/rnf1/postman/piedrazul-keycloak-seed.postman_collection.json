@@ -1,0 +1,178 @@
+{
+  "info": {
+    "name": "Piedrazul Keycloak - usuarios semilla",
+    "description": "Crea en el realm piedrazul los mismos usuarios que importa keycloak/import/piedrazul-realm.json. Usala solo si el realm esta vacio: si el import ya corrio, el alta responde 409.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "keycloakUrl", "value": "http://localhost:8081" },
+    { "key": "realm", "value": "piedrazul" },
+    { "key": "adminUsername", "value": "admin" },
+    { "key": "adminPassword", "value": "admin" },
+    { "key": "adminToken", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Token de administracion",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            { "key": "grant_type", "value": "password" },
+            { "key": "client_id", "value": "admin-cli" },
+            { "key": "username", "value": "{{adminUsername}}" },
+            { "key": "password", "value": "{{adminPassword}}" }
+          ]
+        },
+        "url": "{{keycloakUrl}}/realms/master/protocol/openid-connect/token"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('adminToken', body.access_token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Crear paciente",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"paciente\",\n  \"email\": \"paciente@piedrazul.local\",\n  \"enabled\": true,\n  \"emailVerified\": true,\n  \"firstName\": \"Juan\",\n  \"lastName\": \"Perez\",\n  \"credentials\": [{ \"type\": \"password\", \"value\": \"paciente123\", \"temporary\": false }]\n}"
+        },
+        "url": "{{keycloakUrl}}/admin/realms/{{realm}}/users"
+      }
+    },
+    {
+      "name": "3. Crear medico",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"medico\",\n  \"email\": \"medico@piedrazul.local\",\n  \"enabled\": true,\n  \"emailVerified\": true,\n  \"firstName\": \"Maria\",\n  \"lastName\": \"Lopez\",\n  \"credentials\": [{ \"type\": \"password\", \"value\": \"medico123\", \"temporary\": false }]\n}"
+        },
+        "url": "{{keycloakUrl}}/admin/realms/{{realm}}/users"
+      }
+    },
+    {
+      "name": "4. Crear agendador",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"agendador\",\n  \"email\": \"agendador@piedrazul.local\",\n  \"enabled\": true,\n  \"emailVerified\": true,\n  \"firstName\": \"Agendador\",\n  \"lastName\": \"Piedrazul\",\n  \"credentials\": [{ \"type\": \"password\", \"value\": \"agendador123\", \"temporary\": false }]\n}"
+        },
+        "url": "{{keycloakUrl}}/admin/realms/{{realm}}/users"
+      }
+    },
+    {
+      "name": "5. Crear administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"admin\",\n  \"email\": \"admin@piedrazul.local\",\n  \"enabled\": true,\n  \"emailVerified\": true,\n  \"firstName\": \"Administrador\",\n  \"lastName\": \"Piedrazul\",\n  \"credentials\": [{ \"type\": \"password\", \"value\": \"admin123\", \"temporary\": false }]\n}"
+        },
+        "url": "{{keycloakUrl}}/admin/realms/{{realm}}/users"
+      }
+    },
+    {
+      "name": "6. Buscar paciente y guardar su id",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+        "url": "{{keycloakUrl}}/admin/realms/{{realm}}/users?username=paciente&exact=true"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const users = pm.response.json();",
+              "pm.collectionVariables.set('userId', users[0].id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Leer rol PATIENT",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+        "url": "{{keycloakUrl}}/admin/realms/{{realm}}/roles/PATIENT"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const role = pm.response.json();",
+              "pm.collectionVariables.set('roleId', role.id);",
+              "pm.collectionVariables.set('roleName', role.name);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Asignar PATIENT al paciente",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "[{ \"id\": \"{{roleId}}\", \"name\": \"{{roleName}}\" }]"
+        },
+        "url": "{{keycloakUrl}}/admin/realms/{{realm}}/users/{{userId}}/role-mappings/realm"
+      }
+    },
+    {
+      "name": "9. Probar login del paciente",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            { "key": "grant_type", "value": "password" },
+            { "key": "client_id", "value": "piedrazul-web" },
+            { "key": "username", "value": "paciente" },
+            { "key": "password", "value": "paciente123" }
+          ]
+        },
+        "url": "{{keycloakUrl}}/realms/{{realm}}/protocol/openid-connect/token"
+      }
+    }
+  ]
+}

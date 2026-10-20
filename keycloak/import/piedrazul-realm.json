@@ -1,0 +1,160 @@
+{
+  "realm": "piedrazul",
+  "enabled": true,
+  "displayName": "Piedrazul",
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "accessTokenLifespan": 28800,
+  "ssoSessionIdleTimeout": 28800,
+  "roles": {
+    "realm": [
+      {
+        "name": "PATIENT",
+        "description": "Paciente: consulta franjas y agenda su cita."
+      },
+      {
+        "name": "DOCTOR",
+        "description": "Medico: consulta su inicio."
+      },
+      {
+        "name": "SCHEDULER",
+        "description": "Agendador: consulta las citas de un medico."
+      },
+      {
+        "name": "ADMINISTRATOR",
+        "description": "Administrador: configura los horarios de atencion."
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "piedrazul-web",
+      "name": "Piedrazul frontend",
+      "description": "Client publico del SPA Angular. Sin secreto.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "bearerOnly": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": true,
+      "rootUrl": "http://localhost:4200",
+      "baseUrl": "http://localhost:4200",
+      "redirectUris": [
+        "http://localhost:4200/*"
+      ],
+      "webOrigins": [
+        "http://localhost:4200"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email"
+      ],
+      "protocolMappers": [
+        {
+          "name": "piedrazul-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "multivalued": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "roles",
+            "jsonType.label": "String"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "paciente",
+      "enabled": true,
+      "email": "paciente@piedrazul.local",
+      "emailVerified": true,
+      "firstName": "Juan",
+      "lastName": "Perez",
+      "requiredActions": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "paciente123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "PATIENT"
+      ]
+    },
+    {
+      "username": "medico",
+      "enabled": true,
+      "email": "medico@piedrazul.local",
+      "emailVerified": true,
+      "firstName": "Maria",
+      "lastName": "Lopez",
+      "requiredActions": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "medico123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "DOCTOR"
+      ]
+    },
+    {
+      "username": "agendador",
+      "enabled": true,
+      "email": "agendador@piedrazul.local",
+      "emailVerified": true,
+      "firstName": "Agendador",
+      "lastName": "Piedrazul",
+      "requiredActions": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "agendador123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "SCHEDULER"
+      ]
+    },
+    {
+      "username": "admin",
+      "enabled": true,
+      "email": "admin@piedrazul.local",
+      "emailVerified": true,
+      "firstName": "Administrador",
+      "lastName": "Piedrazul",
+      "requiredActions": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "ADMINISTRATOR"
+      ]
+    }
+  ]
+}
