@@ -14,7 +14,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(authed).pipe(
     catchError((error) => {
-      const isLogin = req.url.includes('/auth/login');
+      const isLogin = req.url.includes('/protocol/openid-connect/token') || req.url.includes('/auth/login');
       if (error?.status === 401 && !isLogin) {
         auth.logout();
         router.navigate(['/login'], { queryParams: { reason: 'sesion' } });

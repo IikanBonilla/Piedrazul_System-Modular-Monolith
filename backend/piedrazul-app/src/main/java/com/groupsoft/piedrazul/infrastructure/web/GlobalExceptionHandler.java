@@ -1,31 +1,85 @@
 package com.groupsoft.piedrazul.infrastructure.web;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.groupsoft.piedrazul.shared.exception.DomainException;
 import com.groupsoft.piedrazul.user.application.exception.AuthException;
 import com.groupsoft.piedrazul.user.application.exception.RegistrationException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import java.io.IOException;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 
 @RestControllerAdvice
-public class GlobalExceptionHandler {
+public class GlobalExceptionHandler implements AuthenticationEntryPoint, AccessDeniedHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final String UNAUTHORIZED_MESSAGE = "Debes iniciar sesión.";
+    private static final String EXPIRED_MESSAGE = "Tu sesión expiró. Ingresa de nuevo.";
+    private static final String FORBIDDEN_MESSAGE = "No tienes permiso para acceder a esta función.";
+
+    private final ObjectMapper objectMapper;
+
+    public GlobalExceptionHandler(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
+
+    @Override
+    public void commence(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            AuthenticationException authException
+    ) throws IOException {
+        if (isExpired(authException)) {
+            write(response, HttpStatus.UNAUTHORIZED, "SESSION_EXPIRED", EXPIRED_MESSAGE);
+            return;
+        }
+        write(response, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", UNAUTHORIZED_MESSAGE);
+    }
+
+    @Override
+    public void handle(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            AccessDeniedException accessDeniedException
+    ) throws IOException {
+        write(response, HttpStatus.FORBIDDEN, "FORBIDDEN", FORBIDDEN_MESSAGE);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccessDenied(AccessDeniedException ex) {
+        return body(HttpStatus.FORBIDDEN, "FORBIDDEN", FORBIDDEN_MESSAGE, Map.of());
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Map<String, Object>> handleAuthentication(AuthenticationException ex) {
+        if (isExpired(ex)) {
+            return body(HttpStatus.UNAUTHORIZED, "SESSION_EXPIRED", EXPIRED_MESSAGE, Map.of());
+        }
+        return body(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", UNAUTHORIZED_MESSAGE, Map.of());
+    }
 
     @ExceptionHandler(AuthException.class)
     public ResponseEntity<Map<String, Object>> handleAuth(AuthException ex) {
         HttpStatus status = switch (ex.getCode()) {
             case "INVALID_CREDENTIALS", "UNAUTHORIZED", "SESSION_EXPIRED" -> HttpStatus.UNAUTHORIZED;
-            case "USER_INACTIVE", "FORBIDDEN" -> HttpStatus.FORBIDDEN;
+            case "USER_INACTIVE", "FORBIDDEN", "ACCOUNT_NOT_LINKED" -> HttpStatus.FORBIDDEN;
             default -> HttpStatus.BAD_REQUEST;
         };
         return body(status, ex.getCode(), ex.getMessage(), ex.getFields());
@@ -33,7 +87,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RegistrationException.class)
     public ResponseEntity<Map<String, Object>> handleRegistration(RegistrationException ex) {
-        HttpStatus status = "DUPLICATE".equals(ex.getCode()) ? HttpStatus.CONFLICT : HttpStatus.BAD_REQUEST;
+        HttpStatus status = switch (ex.getCode()) {
+            case "DUPLICATE" -> HttpStatus.CONFLICT;
+            case "IDENTITY_PROVIDER" -> HttpStatus.SERVICE_UNAVAILABLE;
+            default -> HttpStatus.BAD_REQUEST;
+        };
         return body(status, ex.getCode(), ex.getMessage(), ex.getFields());
     }
 
@@ -95,5 +153,27 @@ public class GlobalExceptionHandler {
             payload.put("fields", fields);
         }
         return ResponseEntity.status(status).body(payload);
+    }
+
+    private void write(HttpServletResponse response, HttpStatus status, String code, String message) throws IOException {
+        if (response.isCommitted()) {
+            return;
+        }
+        response.setStatus(status.value());
+        response.setCharacterEncoding("UTF-8");
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        objectMapper.writeValue(response.getWriter(), body(status, code, message, Map.of()).getBody());
+    }
+
+    private boolean isExpired(Exception exception) {
+        Throwable current = exception;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null && message.toLowerCase(Locale.ROOT).contains("expired")) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 }

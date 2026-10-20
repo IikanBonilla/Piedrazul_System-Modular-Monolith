@@ -28,4 +28,12 @@ public class RegistrationException extends DomainException {
     public static RegistrationException conflict(String field, String message) {
         return new RegistrationException("DUPLICATE", message, Map.of(field, message));
     }
+
+    public static RegistrationException identityProvider() {
+        return new RegistrationException(
+                "IDENTITY_PROVIDER",
+                "No se pudo crear la cuenta de acceso. Verifica que Keycloak esté en ejecución e intenta de nuevo.",
+                Map.of()
+        );
+    }
 }

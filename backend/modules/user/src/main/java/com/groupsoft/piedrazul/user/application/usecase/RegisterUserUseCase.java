@@ -2,6 +2,7 @@ package com.groupsoft.piedrazul.user.application.usecase;
 
 import com.groupsoft.piedrazul.user.application.dto.RegisterUserRequest;
 import com.groupsoft.piedrazul.user.application.exception.RegistrationException;
+import com.groupsoft.piedrazul.user.application.port.IdentityProvisioner;
 import com.groupsoft.piedrazul.user.application.validation.RegistrationRules;
 import com.groupsoft.piedrazul.user.domain.model.User;
 import com.groupsoft.piedrazul.user.domain.repository.UserRepository;
@@ -19,6 +20,7 @@ public class RegisterUserUseCase {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final IdentityProvisioner identityProvisioner;
 
     @Transactional
     public User execute(RegisterUserRequest request) {
@@ -38,6 +40,15 @@ public class RegisterUserUseCase {
             throw RegistrationException.conflict("documentNumber", "Este documento ya está registrado.");
         }
 
+        String role = RegistrationRules.toPublicRole(normalized.role()).name();
+        identityProvisioner.provision(
+                normalized.username(),
+                normalized.email(),
+                normalized.fullName(),
+                normalized.password(),
+                role
+        );
+
         User user = User.builder()
                 .username(normalized.username())
                 .password(passwordEncoder.encode(normalized.password()))
@@ -50,7 +61,12 @@ public class RegisterUserUseCase {
                 .active(true)
                 .build();
 
-        return userRepository.save(user);
+        try {
+            return userRepository.save(user);
+        } catch (RuntimeException ex) {
+            identityProvisioner.rollback(normalized.username());
+            throw ex;
+        }
     }
 
     private RegisterUserRequest normalize(RegisterUserRequest request) {

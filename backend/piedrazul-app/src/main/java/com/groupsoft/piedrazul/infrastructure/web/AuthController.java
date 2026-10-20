@@ -1,19 +1,18 @@
 package com.groupsoft.piedrazul.infrastructure.web;
 
-import com.groupsoft.piedrazul.infrastructure.security.AuthTokenService;
-import com.groupsoft.piedrazul.infrastructure.security.IssuedToken;
+import com.groupsoft.piedrazul.infrastructure.security.CurrentSessionService;
 import com.groupsoft.piedrazul.infrastructure.service.RegisterAccountService;
-import com.groupsoft.piedrazul.user.application.dto.AuthenticatedUser;
-import com.groupsoft.piedrazul.user.application.dto.LoginRequest;
-import com.groupsoft.piedrazul.user.application.dto.LoginResponse;
 import com.groupsoft.piedrazul.user.application.dto.RegisterUserRequest;
 import com.groupsoft.piedrazul.user.application.dto.RegisterUserResponse;
-import com.groupsoft.piedrazul.user.application.usecase.LoginUseCase;
+import com.groupsoft.piedrazul.user.application.dto.SessionProfile;
 import com.groupsoft.piedrazul.user.domain.model.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,34 +22,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
-@Tag(name = "Auth", description = "Inicio de sesión y registro")
+@Tag(name = "Auth", description = "Registro local y perfil de la sesión Keycloak")
 public class AuthController {
 
-    private final LoginUseCase loginUseCase;
     private final RegisterAccountService registerAccountService;
-    private final AuthTokenService authTokenService;
+    private final CurrentSessionService currentSessionService;
 
-    @PostMapping("/login")
-    @Operation(summary = "Iniciar sesión con usuario y contraseña")
-    public LoginResponse login(@RequestBody LoginRequest request) {
-        AuthenticatedUser user = loginUseCase.execute(request);
-        IssuedToken issued = authTokenService.issue(user);
-        return new LoginResponse(
-                issued.token(),
-                issued.expiresAt(),
-                user.id(),
-                user.username(),
-                user.fullName(),
-                user.role(),
-                user.doctorId(),
-                user.email(),
-                user.phone()
-        );
+    @GetMapping("/me")
+    @Operation(summary = "Ficha clínica del usuario autenticado con el JWT de Keycloak")
+    public SessionProfile me(@AuthenticationPrincipal Jwt jwt) {
+        return currentSessionService.profile(jwt);
     }
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Registrar paciente o médico")
+    @Operation(summary = "Registrar paciente o médico y crear su usuario en Keycloak")
     public RegisterUserResponse register(@RequestBody RegisterUserRequest request) {
         User user = registerAccountService.register(request);
         return new RegisterUserResponse(

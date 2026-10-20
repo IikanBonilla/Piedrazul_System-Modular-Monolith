@@ -42,4 +42,11 @@ public class AuthException extends DomainException {
                 fields
         );
     }
+
+    public static AuthException notLinked() {
+        return new AuthException(
+                "ACCOUNT_NOT_LINKED",
+                "Tu usuario de acceso no tiene ficha en Piedrazul. Regístrate o pide al administrador que te habilite."
+        );
+    }
 }
