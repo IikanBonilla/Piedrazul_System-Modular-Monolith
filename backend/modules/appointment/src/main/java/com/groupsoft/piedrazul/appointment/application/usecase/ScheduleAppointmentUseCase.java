@@ -21,6 +21,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -32,6 +33,8 @@ public class ScheduleAppointmentUseCase {
 
     private static final DateTimeFormatter DAY_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
+    private static final int MAX_NOTES_LENGTH = 300;
+    private static final Pattern CONTROL_CHARS = Pattern.compile("\\p{Cntrl}");
     private static final Set<AppointmentStatus> OCCUPYING_STATUSES = EnumSet.of(
             AppointmentStatus.PENDING,
             AppointmentStatus.CONFIRMED,
@@ -43,17 +46,22 @@ public class ScheduleAppointmentUseCase {
     private final UserQueryPort userQueryPort;
     private final DoctorSchedulePort doctorSchedulePort;
 
+    /**
+     * El paciente es siempre el de la sesión ({@code patientId}); el documento del cuerpo,
+     * si viene, solo se compara contra él y nunca se usa para buscar a otro paciente.
+     */
     @Transactional
-    public ScheduleAppointmentConfirmationDTO execute(ScheduleAppointmentRequest request) {
+    public ScheduleAppointmentConfirmationDTO execute(Long patientId, ScheduleAppointmentRequest request) {
         ScheduleAppointmentRequest safeRequest = request == null
                 ? ScheduleAppointmentRequest.builder().build()
                 : request;
 
         validate(safeRequest);
+        String notes = normalizeNotes(safeRequest.getNotes());
 
-        String documentNumber = safeRequest.getDocumentNumber().trim();
-        UserSummary patient = userQueryPort.findByDocumentNumber(documentNumber)
-                .orElseThrow(() -> AppointmentSchedulingException.patientNotFound(documentNumber));
+        UserSummary patient = userQueryPort.findById(patientId)
+                .orElseThrow(() -> AppointmentSchedulingException.patientNotFound(String.valueOf(patientId)));
+        ensureSamePatient(safeRequest.getDocumentNumber(), patient);
 
         DoctorSummary doctor = doctorQueryPort.findById(safeRequest.getDoctorId())
                 .orElseThrow(() -> AppointmentSchedulingException.doctorNotFound(safeRequest.getDoctorId()));
@@ -79,7 +87,7 @@ public class ScheduleAppointmentUseCase {
                 .appointmentDate(slot)
                 .status(AppointmentStatus.CONFIRMED)
                 .whatsappNumber(patient.phone())
-                .notes(safeRequest.getNotes())
+                .notes(notes)
                 .build());
 
         String confirmation = "Cita agendada exitosamente para el "
@@ -110,10 +118,31 @@ public class ScheduleAppointmentUseCase {
                 .collect(Collectors.toSet());
     }
 
-    private void validate(ScheduleAppointmentRequest request) {
-        if (request.getDocumentNumber() == null || request.getDocumentNumber().isBlank()) {
-            throw AppointmentSchedulingException.missingPatient();
+    /**
+     * Se compara antes de cualquier consulta por cédula: un documento ajeno responde
+     * igual exista o no, así no se puede sondear qué cédulas están registradas.
+     */
+    private void ensureSamePatient(String requestedDocument, UserSummary patient) {
+        if (requestedDocument == null || requestedDocument.isBlank()) {
+            return;
         }
+        if (!requestedDocument.trim().equals(patient.documentNumber())) {
+            throw AppointmentSchedulingException.patientMismatch();
+        }
+    }
+
+    private String normalizeNotes(String notes) {
+        if (notes == null) {
+            return null;
+        }
+        String trimmed = notes.trim();
+        if (CONTROL_CHARS.matcher(notes).find() || trimmed.length() > MAX_NOTES_LENGTH) {
+            throw AppointmentSchedulingException.invalidNotes();
+        }
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private void validate(ScheduleAppointmentRequest request) {
         if (request.getDoctorId() == null) {
             throw AppointmentSchedulingException.missingDoctor();
         }
