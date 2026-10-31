@@ -1,0 +1,149 @@
+<section class="auth-layout">
+  <div class="auth-aside">
+    <div class="auth-brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+        </svg>
+      </span>
+      <div>
+        <p class="auth-kicker">Registro</p>
+        <h1>Crea tu acceso a Piedrazul</h1>
+      </div>
+    </div>
+    <p class="auth-aside-copy">
+      Puedes registrarte como paciente o médico. Las cuentas de administrador las habilita el equipo de la clínica.
+    </p>
+  </div>
+
+  <div class="auth-panel">
+    <form class="auth-card" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <h2>Crear cuenta</h2>
+      <p class="text-secondary mb-4">Completa tus datos. No se enviará el formulario si hay campos por corregir.</p>
+
+      @if (formError) {
+        <div class="alert alert-danger" role="alert">{{ formError }}</div>
+      }
+
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label" for="fullName">Nombres y apellidos</label>
+          <input id="fullName" class="form-control" type="text" formControlName="fullName" autocomplete="name"
+            [class.is-invalid]="fieldMessage('fullName')"
+            [attr.aria-invalid]="fieldMessage('fullName') ? true : null" aria-describedby="fullName-error" />
+          @if (fieldMessage('fullName')) {
+            <p class="field-error" id="fullName-error">{{ fieldMessage('fullName') }}</p>
+          }
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="documentNumber">Documento</label>
+          <input id="documentNumber" class="form-control" type="text" inputmode="numeric" maxlength="15"
+            formControlName="documentNumber" autocomplete="off"
+            [class.is-invalid]="fieldMessage('documentNumber')"
+            [attr.aria-invalid]="fieldMessage('documentNumber') ? true : null" aria-describedby="documentNumber-error" />
+          @if (fieldMessage('documentNumber')) {
+            <p class="field-error" id="documentNumber-error">{{ fieldMessage('documentNumber') }}</p>
+          }
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="reg-username">Usuario</label>
+          <input id="reg-username" class="form-control" type="text" formControlName="username" autocomplete="username"
+            [class.is-invalid]="fieldMessage('username')"
+            [attr.aria-invalid]="fieldMessage('username') ? true : null" aria-describedby="reg-username-error" />
+          @if (fieldMessage('username')) {
+            <p class="field-error" id="reg-username-error">{{ fieldMessage('username') }}</p>
+          }
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="email">Correo electrónico</label>
+          <input id="email" class="form-control" type="email" formControlName="email" autocomplete="email" inputmode="email"
+            [class.is-invalid]="fieldMessage('email')"
+            [attr.aria-invalid]="fieldMessage('email') ? true : null" aria-describedby="email-error" />
+          @if (fieldMessage('email')) {
+            <p class="field-error" id="email-error">{{ fieldMessage('email') }}</p>
+          }
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="phone">Teléfono</label>
+          <input id="phone" class="form-control" type="tel" inputmode="numeric" maxlength="10" formControlName="phone"
+            autocomplete="tel" placeholder="3001234567"
+            [class.is-invalid]="fieldMessage('phone')"
+            [attr.aria-invalid]="fieldMessage('phone') ? true : null" aria-describedby="phone-error" />
+          @if (fieldMessage('phone')) {
+            <p class="field-error" id="phone-error">{{ fieldMessage('phone') }}</p>
+          }
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="birthDate">Fecha de nacimiento</label>
+          <input id="birthDate" class="form-control" type="date" formControlName="birthDate" [max]="today" autocomplete="bday"
+            [class.is-invalid]="fieldMessage('birthDate')"
+            [attr.aria-invalid]="fieldMessage('birthDate') ? true : null" aria-describedby="birthDate-error" />
+          @if (fieldMessage('birthDate')) {
+            <p class="field-error" id="birthDate-error">{{ fieldMessage('birthDate') }}</p>
+          }
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="role">Rol</label>
+          <select id="role" class="form-select" formControlName="role"
+            [class.is-invalid]="fieldMessage('role')"
+            [attr.aria-invalid]="fieldMessage('role') ? true : null" aria-describedby="role-error">
+            <option value="PATIENT">Paciente</option>
+            <option value="DOCTOR">Médico</option>
+          </select>
+          @if (fieldMessage('role')) {
+            <p class="field-error" id="role-error">{{ fieldMessage('role') }}</p>
+          }
+        </div>
+        @if (form.controls.role.value === 'DOCTOR') {
+          <div class="col-md-6">
+            <label class="form-label" for="specialty">Especialidad</label>
+            <input id="specialty" class="form-control" type="text" formControlName="specialty"
+              [class.is-invalid]="fieldMessage('specialty')"
+              [attr.aria-invalid]="fieldMessage('specialty') ? true : null" aria-describedby="specialty-error" />
+            @if (fieldMessage('specialty')) {
+              <p class="field-error" id="specialty-error">{{ fieldMessage('specialty') }}</p>
+            }
+          </div>
+        }
+        <div class="col-md-6">
+          <label class="form-label" for="reg-password">Contraseña</label>
+          <div class="password-field">
+            <input id="reg-password" class="form-control" [type]="showPassword ? 'text' : 'password'"
+              formControlName="password" autocomplete="new-password"
+              [class.is-invalid]="fieldMessage('password')"
+              [attr.aria-invalid]="fieldMessage('password') ? true : null" aria-describedby="reg-password-error" />
+            <button type="button" class="btn btn-link password-toggle" (click)="showPassword = !showPassword"
+              [attr.aria-pressed]="showPassword"
+              [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+              {{ showPassword ? 'Ocultar' : 'Mostrar' }}
+            </button>
+          </div>
+          @if (fieldMessage('password')) {
+            <p class="field-error" id="reg-password-error">{{ fieldMessage('password') }}</p>
+          }
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="confirmPassword">Confirmar contraseña</label>
+          <input id="confirmPassword" class="form-control" [type]="showPassword ? 'text' : 'password'"
+            formControlName="confirmPassword" autocomplete="new-password"
+            [class.is-invalid]="fieldMessage('confirmPassword')"
+            [attr.aria-invalid]="fieldMessage('confirmPassword') ? true : null" aria-describedby="confirmPassword-error" />
+          @if (fieldMessage('confirmPassword')) {
+            <p class="field-error" id="confirmPassword-error">{{ fieldMessage('confirmPassword') }}</p>
+          }
+        </div>
+      </div>
+
+      <button class="btn btn-primary w-100 mt-4" type="submit" [disabled]="loading">
+        @if (loading) {
+          <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+        }
+        {{ loading ? 'Creando cuenta...' : 'Crear cuenta' }}
+      </button>
+      <p class="auth-switch">
+        ¿Ya tienes cuenta?
+        <a routerLink="/login">Inicia sesión</a>
+      </p>
+    </form>
+  </div>
+</section>

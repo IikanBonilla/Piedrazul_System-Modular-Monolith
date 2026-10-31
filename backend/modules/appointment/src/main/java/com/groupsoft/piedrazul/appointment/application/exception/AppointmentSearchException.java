@@ -11,21 +11,42 @@ public class AppointmentSearchException extends DomainException {
     public static AppointmentSearchException missingDoctor() {
         return new AppointmentSearchException(
                 "MISSING_DOCTOR",
-                "Debe seleccionar un medico o terapista antes de realizar la busqueda."
+                "Selecciona un médico o terapista antes de buscar."
         );
     }
 
     public static AppointmentSearchException missingDate() {
         return new AppointmentSearchException(
                 "MISSING_DATE",
-                "Debe seleccionar una fecha antes de realizar la busqueda."
+                "Selecciona una fecha antes de buscar."
         );
     }
 
     public static AppointmentSearchException doctorNotFound(Long doctorId) {
         return new AppointmentSearchException(
                 "DOCTOR_NOT_FOUND",
-                "No existe un medico o terapista con id: " + doctorId
+                "No existe el médico o terapista seleccionado."
+        );
+    }
+
+    public static AppointmentSearchException missingDocument() {
+        return new AppointmentSearchException(
+                "MISSING_DOCUMENT",
+                "Ingresa la cédula del paciente."
+        );
+    }
+
+    public static AppointmentSearchException invalidDocument() {
+        return new AppointmentSearchException(
+                "INVALID_DOCUMENT",
+                "La cédula debe tener entre 6 y 15 dígitos, sin letras ni espacios."
+        );
+    }
+
+    public static AppointmentSearchException patientNotFound() {
+        return new AppointmentSearchException(
+                "PATIENT_NOT_FOUND",
+                "No hay un paciente activo con esa cédula."
         );
     }
 }

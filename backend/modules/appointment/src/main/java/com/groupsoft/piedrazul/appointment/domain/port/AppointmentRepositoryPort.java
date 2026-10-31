@@ -12,4 +12,10 @@ public interface AppointmentRepositoryPort {
 
     List<Appointment> findByDoctorAndDateRange(
             Long doctorId, LocalDateTime startOfDay, LocalDateTime endOfDay);
+
+    List<Appointment> findByPatientId(Long patientId);
+
+    boolean existsActiveByDoctorAndDateTime(Long doctorId, LocalDateTime appointmentDate);
+
+    Appointment save(Appointment appointment);
 }

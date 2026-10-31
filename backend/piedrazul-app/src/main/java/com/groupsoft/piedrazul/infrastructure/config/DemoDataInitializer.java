@@ -4,7 +4,9 @@ import com.groupsoft.piedrazul.appointment.domain.model.Appointment;
 import com.groupsoft.piedrazul.appointment.domain.model.AppointmentStatus;
 import com.groupsoft.piedrazul.appointment.infrastructure.persistence.AppointmentJpaRepository;
 import com.groupsoft.piedrazul.availability.domain.model.Doctor;
+import com.groupsoft.piedrazul.availability.domain.model.DoctorSchedulingConfig;
 import com.groupsoft.piedrazul.availability.domain.repository.DoctorRepository;
+import com.groupsoft.piedrazul.availability.domain.repository.DoctorSchedulingConfigRepository;
 import com.groupsoft.piedrazul.user.domain.model.Role;
 import com.groupsoft.piedrazul.user.domain.model.User;
 import com.groupsoft.piedrazul.user.domain.repository.UserRepository;
@@ -12,42 +14,82 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
+import java.util.List;
 
+/**
+ * Semilla de demostracion: medico y citas de HE-01, usuarios de login por rol
+ * y la configuracion de horarios por defecto de HE-03.
+ */
 @Configuration
 @RequiredArgsConstructor
 public class DemoDataInitializer {
 
     private final DoctorRepository doctorRepository;
+    private final DoctorSchedulingConfigRepository schedulingConfigRepository;
     private final UserRepository userRepository;
     private final AppointmentJpaRepository appointmentRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Bean
     CommandLineRunner seedDemoData() {
         return args -> {
-            if (doctorRepository.count() > 0) {
+            boolean freshCatalog = doctorRepository.count() == 0;
+            Doctor doctor = ensureActiveDoctor();
+            ensureSchedulingConfig(doctor);
+
+            User patient = ensureUser(
+                    "paciente",
+                    "paciente123",
+                    "Juan Perez",
+                    "paciente@piedrazul.local",
+                    "1234567890",
+                    "3001234567",
+                    LocalDate.of(1995, 4, 12),
+                    Role.PATIENT,
+                    null
+            );
+            ensureUser(
+                    "agendador",
+                    "agendador123",
+                    "Agendador Piedrazul",
+                    "agendador@piedrazul.local",
+                    "1000000003",
+                    "3000000003",
+                    LocalDate.of(1990, 6, 20),
+                    Role.SCHEDULER,
+                    null
+            );
+            ensureUser(
+                    "admin",
+                    "admin123",
+                    "Administrador Piedrazul",
+                    "admin@piedrazul.local",
+                    "1000000001",
+                    "3000000001",
+                    LocalDate.of(1985, 1, 15),
+                    Role.ADMINISTRATOR,
+                    null
+            );
+            ensureUser(
+                    "medico",
+                    "medico123",
+                    doctor.getFullName(),
+                    "medico@piedrazul.local",
+                    "1000000002",
+                    "3000000002",
+                    LocalDate.of(1982, 8, 3),
+                    Role.DOCTOR,
+                    doctor.getId()
+            );
+
+            if (!freshCatalog || appointmentRepository.count() > 0) {
                 return;
             }
 
-            Doctor doctor = doctorRepository.save(Doctor.builder()
-                    .fullName("Dra. Maria Lopez")
-                    .specialty("Medicina General")
-                    .active(true)
-                    .build());
-
-            User patient = userRepository.save(User.builder()
-                    .username("paciente")
-                    .password("paciente123")
-                    .fullName("Juan Perez")
-                    .documentNumber("1234567890")
-                    .phone("3001234567")
-                    .role(Role.PATIENT)
-                    .active(true)
-                    .build());
-
             LocalDate demoDate = LocalDate.now().plusDays(1);
-
             appointmentRepository.save(Appointment.builder()
                     .patientId(patient.getId())
                     .doctorId(doctor.getId())
@@ -56,7 +98,6 @@ public class DemoDataInitializer {
                     .whatsappNumber("3001234567")
                     .notes("Control general")
                     .build());
-
             appointmentRepository.save(Appointment.builder()
                     .patientId(patient.getId())
                     .doctorId(doctor.getId())
@@ -66,5 +107,88 @@ public class DemoDataInitializer {
                     .notes("Seguimiento")
                     .build());
         };
+    }
+
+    private Doctor ensureActiveDoctor() {
+        List<Doctor> doctors = doctorRepository.findAll();
+        Doctor doctor = doctors.stream()
+                .filter(Doctor::isActive)
+                .findFirst()
+                .orElse(doctors.isEmpty() ? null : doctors.get(0));
+        if (doctor == null) {
+            return doctorRepository.save(Doctor.builder()
+                    .fullName("Dra. Maria Lopez")
+                    .specialty("Medicina General")
+                    .active(true)
+                    .build());
+        }
+        if (!doctor.isActive()) {
+            doctor.setActive(true);
+            return doctorRepository.save(doctor);
+        }
+        return doctor;
+    }
+
+    private void ensureSchedulingConfig(Doctor doctor) {
+        if (schedulingConfigRepository.findByDoctorId(doctor.getId()).isPresent()) {
+            return;
+        }
+        schedulingConfigRepository.save(DoctorSchedulingConfig.defaultFor(doctor.getId()));
+    }
+
+    private User ensureUser(
+            String username,
+            String rawPassword,
+            String fullName,
+            String email,
+            String documentNumber,
+            String phone,
+            LocalDate birthDate,
+            Role role,
+            Long doctorId
+    ) {
+        User user = userRepository.findByUsernameIgnoreCase(username).orElse(null);
+        if (user == null) {
+            return userRepository.save(User.builder()
+                    .username(username)
+                    .password(passwordEncoder.encode(rawPassword))
+                    .fullName(fullName)
+                    .email(email)
+                    .documentNumber(documentNumber)
+                    .phone(phone)
+                    .birthDate(birthDate)
+                    .role(role)
+                    .active(true)
+                    .doctorId(doctorId)
+                    .build());
+        }
+
+        boolean changed = false;
+        if (!isBcrypt(user.getPassword())) {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+            changed = true;
+        }
+        if (user.getEmail() == null) {
+            user.setEmail(email);
+            changed = true;
+        }
+        if (user.getBirthDate() == null) {
+            user.setBirthDate(birthDate);
+            changed = true;
+        }
+        if (user.getRole() != role) {
+            user.setRole(role);
+            changed = true;
+        }
+        if (role == Role.DOCTOR && user.getDoctorId() == null && doctorId != null) {
+            user.setDoctorId(doctorId);
+            changed = true;
+        }
+        return changed ? userRepository.save(user) : user;
+    }
+
+    private boolean isBcrypt(String value) {
+        return value != null
+                && (value.startsWith("$2a$") || value.startsWith("$2b$") || value.startsWith("$2y$"));
     }
 }
