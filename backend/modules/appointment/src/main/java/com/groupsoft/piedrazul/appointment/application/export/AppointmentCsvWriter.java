@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeFormatter;
+import java.util.regex.Pattern;
 
 /**
  * CSV con separador ';' y BOM UTF-8 para que Excel en español abra las columnas.
@@ -17,10 +18,11 @@ public class AppointmentCsvWriter {
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm");
     private static final byte[] UTF8_BOM = new byte[]{(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
+    private static final Pattern PHONE = Pattern.compile("^\\+?\\d+$");
 
     public byte[] write(AppointmentSearchResultDTO result) {
         StringBuilder csv = new StringBuilder();
-        csv.append(cell("Médico")).append(';').append(cell(result.getDoctorName())).append('\n');
+        csv.append(cell("Médico")).append(';').append(userCell(result.getDoctorName())).append('\n');
         csv.append(cell("Fecha")).append(';').append(cell(result.getDate().format(DATE))).append('\n');
         csv.append(cell("Total")).append(';').append(result.getTotal()).append('\n');
         csv.append('\n');
@@ -28,11 +30,11 @@ public class AppointmentCsvWriter {
         for (AppointmentResponseDTO appointment : result.getAppointments()) {
             csv.append(cell(appointment.getAppointmentDate().format(DATE))).append(';');
             csv.append(cell(appointment.getAppointmentDate().format(TIME))).append(';');
-            csv.append(cell(appointment.getPatientName())).append(';');
-            csv.append(cell(appointment.getPatientDocument())).append(';');
-            csv.append(cell(appointment.getWhatsappNumber())).append(';');
+            csv.append(userCell(appointment.getPatientName())).append(';');
+            csv.append(userCell(appointment.getPatientDocument())).append(';');
+            csv.append(userCell(appointment.getWhatsappNumber())).append(';');
             csv.append(cell(statusLabel(appointment.getStatus()))).append(';');
-            csv.append(cell(appointment.getNotes())).append('\n');
+            csv.append(userCell(appointment.getNotes())).append('\n');
         }
 
         byte[] body = csv.toString().getBytes(StandardCharsets.UTF_8);
@@ -55,11 +57,37 @@ public class AppointmentCsvWriter {
         };
     }
 
+    /**
+     * Celda con texto escrito por usuarios: neutraliza fórmulas (CSV injection)
+     * anteponiendo una comilla simple. Los teléfonos válidos se dejan intactos.
+     */
+    private String userCell(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        // trim() elimina \t y \r iniciales, por eso se revisan sobre el valor original.
+        boolean leadingControl = value.charAt(0) == '\t' || value.charAt(0) == '\r';
+        String sanitized = flatten(value);
+        if (sanitized.isEmpty()) {
+            return "";
+        }
+        boolean formula = "=+-@".indexOf(sanitized.charAt(0)) >= 0
+                && !PHONE.matcher(sanitized).matches();
+        return quote(leadingControl || formula ? "'" + sanitized : sanitized);
+    }
+
     private String cell(String value) {
         if (value == null || value.isBlank()) {
             return "";
         }
-        String sanitized = value.replace("\r\n", " ").replace('\n', ' ').replace('\r', ' ').trim();
+        return quote(flatten(value));
+    }
+
+    private String flatten(String value) {
+        return value.replace("\r\n", " ").replace('\n', ' ').replace('\r', ' ').trim();
+    }
+
+    private String quote(String sanitized) {
         boolean needsQuotes = sanitized.indexOf(';') >= 0
                 || sanitized.indexOf('"') >= 0
                 || sanitized.indexOf(',') >= 0;
