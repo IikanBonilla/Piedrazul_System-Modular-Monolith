@@ -1,0 +1,82 @@
+@startuml agendamiento
+title Proceso - agendamiento de una cita
+
+' fuente: keycloak/import/piedrazul-realm.json
+actor Paciente
+' fuente: frontend/src/app/pages/patient/schedule/component.ts
+participant "PatientScheduleComponent" as Page
+' fuente: frontend/src/app/core/services/availability/service.ts
+participant "AvailabilityService" as Av
+' fuente: frontend/src/app/core/services/appointment/service.ts
+participant "AppointmentService" as Ap
+' fuente: frontend/src/app/core/auth/auth.interceptor.ts
+participant "authInterceptor" as Http
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+participant "SecurityConfig" as Sec
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AvailabilitySlotsController.java
+participant "AvailabilitySlotsController" as SlotsApi
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/QueryAvailableSlotsUseCase.java
+participant "QueryAvailableSlotsUseCase" as SlotsUc
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AppointmentSchedulingController.java
+participant "AppointmentSchedulingController" as SchApi
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/ScheduleAppointmentUseCase.java
+participant "ScheduleAppointmentUseCase" as SchUc
+' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/infrastructure/adapter/DoctorScheduleAdapter.java
+participant "DoctorSchedulePort\nDoctorScheduleAdapter" as Schedule
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/infrastructure/persistence/AppointmentRepositoryAdapter.java
+participant "AppointmentRepositoryPort\nAppointmentRepositoryAdapter" as Repo
+
+' fuente: frontend/src/app/pages/patient/schedule/component.ts
+Paciente -> Page : consultAvailability()
+' fuente: frontend/src/app/core/services/availability/service.ts
+Page -> Av : getAvailableSlots(doctorId, date)
+' fuente: frontend/src/app/core/services/availability/service.ts
+Av -> Http : GET /api/v1/doctors/{doctorId}/slots?date=
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+Http -> Sec : Bearer. hasRole PATIENT
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AvailabilitySlotsController.java
+Sec -> SlotsApi : getAvailableSlots
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/QueryAvailableSlotsUseCase.java
+SlotsApi -> SlotsUc : execute(doctorId, date)
+' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/infrastructure/adapter/DoctorScheduleAdapter.java
+SlotsUc -> Schedule : isDateWithinBookingWindow y candidateSlots
+' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/infrastructure/adapter/DoctorScheduleAdapter.java
+Schedule -> Schedule : DoctorWorkingHours sobre DoctorSchedulingConfig\no defaultFor si no hay fila
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/QueryAvailableSlotsUseCase.java
+SlotsUc -> Repo : findByDoctorAndDateRange
+note right of SlotsUc
+  Ocupan franja PENDING, CONFIRMED y COMPLETED.
+  CANCELLED y RESCHEDULED no.
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/QueryAvailableSlotsUseCase.java
+end note
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/QueryAvailableSlotsUseCase.java
+SlotsUc --> Page : AvailableSlotsResultDTO
+
+' fuente: frontend/src/app/pages/patient/schedule/component.ts
+Paciente -> Page : requestSchedule()
+' fuente: frontend/src/app/pages/patient/schedule/component.ts
+Page --> Paciente : showConfirmModal = true\nsin POST todavia
+' fuente: frontend/src/app/pages/patient/schedule/component.ts
+Paciente -> Page : confirmSchedule()
+' fuente: frontend/src/app/pages/patient/schedule/component.ts
+Page -> Ap : scheduleAppointment(documentNumber, doctorId, slot, confirmed=true)
+' fuente: frontend/src/app/core/services/appointment/service.ts
+Ap -> Http : POST /api/v1/appointments
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+Http -> Sec : hasRole PATIENT
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AppointmentSchedulingController.java
+Sec -> SchApi : schedule
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/ScheduleAppointmentUseCase.java
+SchApi -> SchUc : execute(request)
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/ScheduleAppointmentUseCase.java
+SchUc -> SchUc : UserQueryPort.findByDocumentNumber\nDoctorQueryPort.findById
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/ScheduleAppointmentUseCase.java
+SchUc -> Schedule : candidateSlots
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/ScheduleAppointmentUseCase.java
+SchUc -> Repo : findByDoctorAndDateRange y save\nstatus CONFIRMED
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AppointmentSchedulingController.java
+SchUc --> Page : 201 ScheduleAppointmentConfirmationDTO
+' fuente: frontend/src/app/pages/patient/schedule/component.ts
+Page -> Av : loadSlots() de nuevo
+
+@enduml

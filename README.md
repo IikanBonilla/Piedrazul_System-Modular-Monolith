@@ -1,18 +1,21 @@
 # Piedrazul System
 
-Monolito modular Spring Boot + Angular para **HE-01: Consulta de citas medicas**.
+Monolito modular Spring Boot y SPA Angular para agendar citas. La API valida el JWT de Keycloak y persiste en un unico esquema de PostgreSQL. El codigo nombra HE-01, HE-02 y HE-03. La exportacion CSV y el historial por cedula estan implementados; este README los sigue llamando HU-4 y HU-5 porque el texto HE-04 y HE-05 no aparece en el codigo.
 
 ## Estructura
 
 ```
 backend/
-  piedrazul-app/              # Punto de entrada (puerto 8080)
+  piedrazul-app/              # Arranque, controladores y seguridad. Puerto 8080
   modules/
-    shared-kernel/            # Contratos ISP entre modulos
-    user/                     # Datos de pacientes (enriquecimiento)
-    availability/             # Catalogo de medicos
-    appointment/              # Caso de uso de busqueda HE-01
-frontend/                     # Pantalla del agendador
+    shared-kernel/            # Puertos ISP y DTOs compartidos. Sin dependencias Maven
+    user/                     # artifact user-module. Ficha, registro y sugerencias
+    availability/             # artifact availability-module. Medicos y horario
+    appointment/              # artifact appointment-module. Consulta, agenda, CSV e historial
+frontend/                     # Angular. ng serve, origen http://localhost:4200
+keycloak/import/              # Realm que Keycloak importa al arrancar
+docker-compose.yml            # Solo PostgreSQL y Keycloak
+docs/architecture/            # C4, vistas 4+1, patrones GoF y pendientes
 ```
 
 ## Configuracion de base de datos
@@ -105,16 +108,25 @@ Al primer arranque (BD vacia) `DemoDataInitializer` crea:
 - Paciente: Juan Perez, usuario `paciente`, documento `1234567890`
 - 2 citas para **manana** (09:00 CONFIRMED, 10:30 PENDING)
 
-## Historias de usuario cubiertas
+## Historias HE-01 a HE-05
 
-| ID | Descripcion |
-|----|-------------|
-| HU-1.1 | Buscar citas por medico y fecha |
-| HU-1.2 | Visualizar listado en tabla |
-| HU-1.3 | Mostrar cantidad total de citas |
-| HU-2 | El paciente agenda por la web sobre las franjas disponibles |
-| HU-3 | El administrador configura ventana, dias, franja e intervalo |
-| HU-4 | Medico, terapista o agendador exporta la jornada a CSV |
-| HU-5 | Medico, terapista o agendador consulta el historial por cedula, con autocompletado |
+Los ids HE-01, HE-02 y HE-03 estan en los controladores y en los casos de uso. HU-4 y HU-5 son los nombres de este README para la exportacion y el historial: el codigo no usa HE-04 ni HE-05. No hay un rol `TERAPISTA`; el realm describe el rol `DOCTOR` como medico o terapista.
 
-Las pruebas unitarias de los casos nuevos y el informe OWASP ZAP siguen pendientes.
+| ID en el repositorio | Donde esta | Que cubre |
+|----------------------|------------|-----------|
+| HE-01 | `SearchAppointmentsByDoctorAndDateUseCase` | HU-1.1 buscar por medico y fecha, HU-1.2 listado, HU-1.3 total |
+| HE-02 | `ScheduleAppointmentUseCase`, `PatientRegistrationController`, `QueryAvailableSlotsUseCase` | HU-2.1 agendar, HU-2.2 registrar paciente, HU-2.3 franjas |
+| HE-03 | `ConfigureDoctorSchedulingUseCase`, `GetDoctorSchedulingConfigUseCase`, `DoctorWorkingHours` | HU-3.1 a HU-3.5: ventana, dias, franja e intervalo |
+| HU-4 | `ExportAppointmentsCsvUseCase` y `AppointmentListComponent.exportCsv` | Medico o agendador exporta la jornada a CSV |
+| HU-5 | `SearchAppointmentsByPatientDocumentUseCase`, `SuggestPatientsByDocumentUseCase` y `PatientHistoryComponent` | Medico o agendador consulta el historial por cedula, con autocompletado desde el tercer digito |
+
+Quien puede llamar cada ruta esta en `SecurityConfig`. El registro publico (`POST /api/v1/auth/register`) no exige rol y `RegistrationRules` solo acepta `PATIENT` y `DOCTOR`.
+
+No hay informe OWASP ZAP en el repositorio. En backend no hay clase de prueba para `ExportAppointmentsCsvUseCase`, `SearchAppointmentsByPatientDocumentUseCase` ni `SuggestPatientsByDocumentUseCase`.
+
+## Documentacion de arquitectura
+
+- `docs/architecture/c4/`
+- `docs/architecture/vistas-4+1/`
+- `docs/architecture/patrones-gof.md`
+- `docs/architecture/pendientes.md`
