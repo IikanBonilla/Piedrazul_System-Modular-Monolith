@@ -1,0 +1,126 @@
+@startuml desarrollo
+title Vista de desarrollo - modulos Maven y dependencias de los pom.xml
+
+' fuente: pom.xml
+component "spring-boot-starter-parent 3.2.5" as boot
+' fuente: pom.xml
+component "piedrazul-system\n1.0.0-SNAPSHOT\njava 21" as root
+' fuente: backend/pom.xml
+component "piedrazul-backend\npom" as backend
+
+' fuente: backend/modules/shared-kernel/pom.xml
+component "shared-kernel\nartifact shared-kernel\nsin dependencias" as sk
+' fuente: backend/modules/user/pom.xml
+component "user\nartifact user-module" as user
+' fuente: backend/modules/availability/pom.xml
+component "availability\nartifact availability-module" as availability
+' fuente: backend/modules/appointment/pom.xml
+component "appointment\nartifact appointment-module" as appointment
+' fuente: backend/piedrazul-app/pom.xml
+component "piedrazul-app\nartifact piedrazul-app" as app
+
+' fuente: backend/modules/user/pom.xml
+component "spring-boot-starter-data-jpa" as jpa
+' fuente: pom.xml
+component "lombok 1.18.42" as lombok
+' fuente: backend/modules/user/pom.xml
+component "spring-security-crypto" as crypto
+' fuente: backend/modules/user/pom.xml
+component "spring-boot-starter-test\nscope test" as test
+' fuente: backend/piedrazul-app/pom.xml
+component "spring-boot-starter-web" as web
+' fuente: backend/piedrazul-app/pom.xml
+component "spring-boot-starter-oauth2-resource-server" as oauth
+' fuente: backend/piedrazul-app/pom.xml
+component "postgresql\nscope runtime" as pg
+' fuente: backend/piedrazul-app/pom.xml
+component "springdoc-openapi-starter-webmvc-ui 2.5.0" as doc
+
+' fuente: pom.xml
+root -up-|> boot : parent
+' fuente: backend/pom.xml
+backend -up-|> root : parent
+' fuente: pom.xml
+root --> backend : module backend
+' fuente: backend/pom.xml
+backend --> sk : module modules/shared-kernel
+' fuente: backend/pom.xml
+backend --> user : module modules/user
+' fuente: backend/pom.xml
+backend --> availability : module modules/availability
+' fuente: backend/pom.xml
+backend --> appointment : module modules/appointment
+' fuente: backend/pom.xml
+backend --> app : module piedrazul-app
+
+' fuente: backend/modules/shared-kernel/pom.xml
+sk -up-|> backend : parent
+' fuente: backend/modules/user/pom.xml
+user -up-|> backend : parent
+' fuente: backend/modules/availability/pom.xml
+availability -up-|> backend : parent
+' fuente: backend/modules/appointment/pom.xml
+appointment -up-|> backend : parent
+' fuente: backend/piedrazul-app/pom.xml
+app -up-|> backend : parent
+
+' fuente: backend/modules/user/pom.xml
+user --> sk
+' fuente: backend/modules/user/pom.xml
+user --> jpa
+' fuente: backend/modules/user/pom.xml
+user --> lombok
+' fuente: backend/modules/user/pom.xml
+user --> crypto
+' fuente: backend/modules/user/pom.xml
+user --> test
+
+' fuente: backend/modules/availability/pom.xml
+availability --> sk
+' fuente: backend/modules/availability/pom.xml
+availability --> jpa
+' fuente: backend/modules/availability/pom.xml
+availability --> lombok
+' fuente: backend/modules/availability/pom.xml
+availability --> test
+
+' fuente: backend/modules/appointment/pom.xml
+appointment --> sk
+' fuente: backend/modules/appointment/pom.xml
+appointment --> jpa
+' fuente: backend/modules/appointment/pom.xml
+appointment --> lombok
+' fuente: backend/modules/appointment/pom.xml
+appointment --> test
+
+' fuente: backend/piedrazul-app/pom.xml
+app --> sk
+' fuente: backend/piedrazul-app/pom.xml
+app --> user
+' fuente: backend/piedrazul-app/pom.xml
+app --> availability
+' fuente: backend/piedrazul-app/pom.xml
+app --> appointment
+' fuente: backend/piedrazul-app/pom.xml
+app --> web
+' fuente: backend/piedrazul-app/pom.xml
+app --> oauth
+' fuente: backend/piedrazul-app/pom.xml
+app --> jpa
+' fuente: backend/piedrazul-app/pom.xml
+app --> pg
+' fuente: backend/piedrazul-app/pom.xml
+app --> lombok
+' fuente: backend/piedrazul-app/pom.xml
+app --> doc
+' fuente: backend/piedrazul-app/pom.xml
+app --> test
+
+note bottom of sk
+  user, availability y appointment
+  dependen de shared-kernel.
+  No dependen entre si.
+' fuente: backend/modules/user/pom.xml
+end note
+
+@enduml
