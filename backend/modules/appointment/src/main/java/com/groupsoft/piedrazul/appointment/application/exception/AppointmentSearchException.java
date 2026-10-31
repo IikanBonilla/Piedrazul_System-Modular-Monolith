@@ -28,4 +28,25 @@ public class AppointmentSearchException extends DomainException {
                 "No existe el médico o terapista seleccionado."
         );
     }
+
+    public static AppointmentSearchException missingDocument() {
+        return new AppointmentSearchException(
+                "MISSING_DOCUMENT",
+                "Ingresa la cédula del paciente."
+        );
+    }
+
+    public static AppointmentSearchException invalidDocument() {
+        return new AppointmentSearchException(
+                "INVALID_DOCUMENT",
+                "La cédula debe tener entre 6 y 15 dígitos, sin letras ni espacios."
+        );
+    }
+
+    public static AppointmentSearchException patientNotFound() {
+        return new AppointmentSearchException(
+                "PATIENT_NOT_FOUND",
+                "No hay un paciente activo con esa cédula."
+        );
+    }
 }

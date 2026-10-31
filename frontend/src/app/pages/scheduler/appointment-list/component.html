@@ -2,7 +2,7 @@
   <header class="page-header">
     <p class="eyebrow">{{ audience() }}</p>
     <h1>Consulta de citas médicas</h1>
-    <p>Busca las citas de un médico o terapista en la fecha que necesites.</p>
+    <p>Busca las citas de un médico o terapista en una fecha y, si lo necesitas, descarga el listado en CSV para la jornada.</p>
   </header>
 
   <div class="card mb-4">
@@ -41,11 +41,15 @@
             >
             <p class="field-error" id="date-error" *ngIf="dateError">{{ dateError }}</p>
           </div>
-          <div class="col-md-3 d-grid">
+          <div class="col-md-3 d-grid gap-2">
             <label class="form-label d-none d-md-block" aria-hidden="true">&nbsp;</label>
             <button class="btn btn-primary" type="submit" [disabled]="loading">
               <span class="spinner-border spinner-border-sm me-2" *ngIf="loading" aria-hidden="true"></span>
               {{ loading ? 'Buscando...' : 'Buscar citas' }}
+            </button>
+            <button class="btn btn-outline-primary" type="button" (click)="exportCsv()" [disabled]="exporting">
+              <span class="spinner-border spinner-border-sm me-2" *ngIf="exporting" aria-hidden="true"></span>
+              {{ exporting ? 'Exportando...' : 'Exportar CSV' }}
             </button>
           </div>
         </div>
@@ -56,6 +60,9 @@
       </div>
       <div class="alert alert-danger mt-3 mb-0" *ngIf="searchError" role="alert">
         {{ searchError }}
+      </div>
+      <div class="alert alert-danger mt-3 mb-0" *ngIf="exportError" role="alert">
+        {{ exportError }}
       </div>
     </div>
   </div>

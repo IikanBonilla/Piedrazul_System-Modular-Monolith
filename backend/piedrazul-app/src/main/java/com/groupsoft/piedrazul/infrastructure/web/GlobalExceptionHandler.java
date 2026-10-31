@@ -99,6 +99,7 @@ public class GlobalExceptionHandler implements AuthenticationEntryPoint, AccessD
     public ResponseEntity<Map<String, Object>> handleDomainException(DomainException ex) {
         HttpStatus status = switch (ex.getCode()) {
             case "MISSING_DOCTOR", "MISSING_DATE", "MISSING_SLOT", "MISSING_PATIENT",
+                 "MISSING_DOCUMENT", "INVALID_DOCUMENT",
                  "INCOMPLETE_REGISTRATION", "CONFIRMATION_REQUIRED",
                  "INVALID_BOOKING_WINDOW", "NO_WORKING_DAYS",
                  "INVALID_TIME_RANGE", "INVALID_SLOT_INTERVAL" -> HttpStatus.BAD_REQUEST;

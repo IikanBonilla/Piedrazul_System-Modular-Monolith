@@ -84,11 +84,18 @@ Decision de alcance, escenarios de calidad y diagrama:
 - `docs/rnf1/escenarios-calidad-seguridad.md`
 - `docs/rnf1/flujo-autenticacion.md`
 
-## API HE-01
+## API de citas
 
-`GET /api/v1/appointments/doctor/{doctorId}?date=YYYY-MM-DD`
-
-`GET /api/v1/doctors` — lista de medicos para el filtro
+| Metodo | Ruta | Quien | Para que |
+|--------|------|-------|----------|
+| GET | `/api/v1/appointments/doctor/{doctorId}?date=YYYY-MM-DD` | Agendador, medico | Listado y cantidad de citas de esa jornada |
+| GET | `/api/v1/appointments/doctor/{doctorId}/export?date=YYYY-MM-DD` | Agendador, medico | CSV (separador `;`, UTF-8) para la jornada |
+| GET | `/api/v1/appointments/patient?document={cedula}` | Agendador, medico | Historial de citas del paciente |
+| GET | `/api/v1/patients/suggest?document={prefijo}` | Agendador, medico | Autocompletado desde el tercer digito de la cedula |
+| GET | `/api/v1/doctors` | Agendador, medico, paciente, administrador | Catalogo para los filtros |
+| GET | `/api/v1/doctors/{doctorId}/slots?date=YYYY-MM-DD` | Paciente | Franjas libres |
+| POST | `/api/v1/appointments` | Paciente | Agendar una cita |
+| GET/PUT | `/api/v1/admin/doctors/{doctorId}/scheduling-config` | Administrador | Ventana en semanas, dias, franja e intervalo |
 
 ## Datos de demostracion
 
@@ -105,7 +112,9 @@ Al primer arranque (BD vacia) `DemoDataInitializer` crea:
 | HU-1.1 | Buscar citas por medico y fecha |
 | HU-1.2 | Visualizar listado en tabla |
 | HU-1.3 | Mostrar cantidad total de citas |
+| HU-2 | El paciente agenda por la web sobre las franjas disponibles |
+| HU-3 | El administrador configura ventana, dias, franja e intervalo |
+| HU-4 | Medico, terapista o agendador exporta la jornada a CSV |
+| HU-5 | Medico, terapista o agendador consulta el historial por cedula, con autocompletado |
 
-## Tu siguiente paso
-
-Completa el `TODO` en `SearchAppointmentsByDoctorAndDateUseCaseTest.java`.
+Las pruebas unitarias de los casos nuevos y el informe OWASP ZAP siguen pendientes.

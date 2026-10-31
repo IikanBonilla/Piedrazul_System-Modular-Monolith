@@ -17,11 +17,11 @@
       },
       {
         "name": "DOCTOR",
-        "description": "Medico: consulta su inicio."
+        "description": "Medico o terapista: consulta citas del dia, exporta CSV y busca historial por cedula."
       },
       {
         "name": "SCHEDULER",
-        "description": "Agendador: consulta las citas de un medico."
+        "description": "Agendador: consulta citas, exporta CSV y busca historial por cedula."
       },
       {
         "name": "ADMINISTRATOR",

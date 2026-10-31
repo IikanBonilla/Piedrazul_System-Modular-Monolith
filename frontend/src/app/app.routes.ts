@@ -33,7 +33,7 @@ export const routes: Routes = [
   {
     path: 'medico',
     canActivate: [roleGuard('DOCTOR')],
-    loadComponent: () => import('./pages/doctor/home/component').then((m) => m.DoctorHomeComponent)
+    loadChildren: () => import('./pages/doctor/routes').then((m) => m.DOCTOR_ROUTES)
   },
   {
     path: 'paciente',

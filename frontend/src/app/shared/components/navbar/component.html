@@ -24,8 +24,11 @@
       <div class="navbar-nav ms-lg-auto align-items-lg-center gap-lg-2 py-3 py-lg-0">
         @if (session(); as user) {
           @if (user.role === 'SCHEDULER') {
-            <a class="nav-link" routerLink="/agendador" routerLinkActive="active-link" (click)="menuOpen = false">
+            <a class="nav-link" routerLink="/agendador" routerLinkActive="active-link" [routerLinkActiveOptions]="{ exact: true }" (click)="menuOpen = false">
               Consulta de citas
+            </a>
+            <a class="nav-link" routerLink="/agendador/historial" routerLinkActive="active-link" (click)="menuOpen = false">
+              Historial
             </a>
           }
           @if (user.role === 'PATIENT') {
@@ -45,8 +48,14 @@
             </a>
           }
           @if (user.role === 'DOCTOR') {
-            <a class="nav-link" routerLink="/medico" routerLinkActive="active-link" (click)="menuOpen = false">
+            <a class="nav-link" routerLink="/medico" routerLinkActive="active-link" [routerLinkActiveOptions]="{ exact: true }" (click)="menuOpen = false">
               Mi cuenta
+            </a>
+            <a class="nav-link" routerLink="/medico/citas" routerLinkActive="active-link" (click)="menuOpen = false">
+              Citas del día
+            </a>
+            <a class="nav-link" routerLink="/medico/historial" routerLinkActive="active-link" (click)="menuOpen = false">
+              Historial
             </a>
           }
           <span class="nav-user">{{ user.fullName || user.username }} · {{ roleLabel() }}</span>

@@ -1,0 +1,123 @@
+<section class="container page-wrap">
+  <header class="page-header">
+    <p class="eyebrow">{{ audience() }}</p>
+    <h1>Historial de citas por cédula</h1>
+    <p>Escribe la cédula del paciente. A partir del tercer dígito aparecen coincidencias para elegir el paciente y ver todas sus citas.</p>
+  </header>
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <form (ngSubmit)="search()" novalidate>
+        <div class="row g-3 align-items-start">
+          <div class="col-md-8">
+            <label class="form-label" for="patient-document">Cédula del paciente</label>
+            <div class="suggest-box">
+              <input
+                id="patient-document"
+                class="form-control"
+                type="text"
+                inputmode="numeric"
+                autocomplete="off"
+                name="document"
+                maxlength="15"
+                placeholder="Ej. 1234567890"
+                [(ngModel)]="documentQuery"
+                (ngModelChange)="onDocumentInput()"
+                (blur)="closeSuggestions()"
+                [class.is-invalid]="documentFieldError"
+                [attr.aria-invalid]="documentFieldError ? true : null"
+                aria-autocomplete="list"
+                aria-controls="patient-suggestions"
+                aria-describedby="document-error"
+              >
+              @if (suggestions.length > 0) {
+                <ul class="suggest-list" id="patient-suggestions" role="listbox">
+                  @for (suggestion of suggestions; track suggestion.id) {
+                    <li>
+                      <button type="button" role="option" (mousedown)="selectSuggestion(suggestion)">
+                        <strong>{{ suggestion.documentNumber }}</strong>
+                        <span>{{ suggestion.fullName }}</span>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+            @if (documentFieldError) {
+              <p class="field-error" id="document-error">{{ documentFieldError }}</p>
+            }
+            @if (suggesting) {
+              <p class="suggest-hint">Buscando coincidencias...</p>
+            }
+          </div>
+          <div class="col-md-4 d-grid">
+            <label class="form-label d-none d-md-block" aria-hidden="true">&nbsp;</label>
+            <button class="btn btn-primary" type="submit" [disabled]="loading">
+              @if (loading) {
+                <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+              }
+              {{ loading ? 'Consultando...' : 'Ver historial' }}
+            </button>
+          </div>
+        </div>
+      </form>
+
+      @if (searchError) {
+        <div class="alert alert-danger mt-3 mb-0" role="alert">{{ searchError }}</div>
+      }
+    </div>
+  </div>
+
+  @if (loading) {
+    <div class="text-center py-5" role="status">
+      <div class="spinner-border text-primary"></div>
+      <p class="mt-3 text-secondary">Consultando el historial...</p>
+    </div>
+  }
+
+  @if (searched && !loading && !searchError) {
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center bg-white gap-3 flex-wrap">
+        <div>
+          <h2 class="h5 mb-0">{{ patientName }}</h2>
+          <p class="mb-0 text-secondary">Cédula {{ patientDocument }}</p>
+        </div>
+        <span class="badge text-bg-primary">Total: {{ total }} citas</span>
+      </div>
+      <div class="card-body p-0">
+        @if (appointments.length === 0) {
+          <div class="empty-state">
+            <p class="mb-0">Este paciente no tiene citas registradas.</p>
+          </div>
+        } @else {
+          <div class="table-responsive">
+            <table class="table table-hover table-stack mb-0">
+              <thead>
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col">Fecha y hora</th>
+                  <th scope="col">Médico / terapista</th>
+                  <th scope="col">Estado</th>
+                  <th scope="col">Notas</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (appointment of appointments; track appointment.id; let i = $index) {
+                  <tr>
+                    <td data-label="#">{{ i + 1 }}</td>
+                    <td class="fw-semibold" data-label="Fecha y hora">{{ appointment.appointmentDate | date:'dd/MM/yyyy HH:mm' }}</td>
+                    <td data-label="Médico / terapista">{{ appointment.doctorName || ('ID ' + appointment.doctorId) }}</td>
+                    <td data-label="Estado">
+                      <span [class]="'badge ' + statusClass(appointment.status)">{{ statusLabel(appointment.status) }}</span>
+                    </td>
+                    <td data-label="Notas">{{ appointment.notes || '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</section>

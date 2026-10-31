@@ -24,6 +24,11 @@ public class AppointmentRepositoryAdapter implements AppointmentRepositoryPort {
     }
 
     @Override
+    public List<Appointment> findByPatientId(Long patientId) {
+        return jpaRepository.findByPatientIdOrderByAppointmentDateDesc(patientId);
+    }
+
+    @Override
     public boolean existsActiveByDoctorAndDateTime(Long doctorId, LocalDateTime appointmentDate) {
         return jpaRepository.existsByDoctorIdAndAppointmentDateAndStatusIn(
                 doctorId,

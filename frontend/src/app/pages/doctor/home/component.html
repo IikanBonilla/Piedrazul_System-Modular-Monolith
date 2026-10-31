@@ -2,7 +2,7 @@
   <header class="page-header">
     <p class="eyebrow">Médico</p>
     <h1>Hola, {{ session?.fullName || session?.username }}</h1>
-    <p>Esta es tu cuenta profesional. La consulta de citas corresponde al agendador.</p>
+    <p>Consulta las citas de una jornada, descarga el listado en CSV o busca el historial de un paciente por su cédula.</p>
   </header>
 
   <div class="card profile-card">
@@ -26,6 +26,10 @@
           <dd>Médico</dd>
         </div>
       </dl>
+      <div class="d-flex flex-wrap gap-2 mt-4">
+        <a class="btn btn-primary" routerLink="/medico/citas">Citas del día</a>
+        <a class="btn btn-outline-primary" routerLink="/medico/historial">Historial por cédula</a>
+      </div>
     </div>
   </div>
 </section>

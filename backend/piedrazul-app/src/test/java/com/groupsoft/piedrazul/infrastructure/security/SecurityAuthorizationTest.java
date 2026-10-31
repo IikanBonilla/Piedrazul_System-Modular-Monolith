@@ -1,8 +1,10 @@
 package com.groupsoft.piedrazul.infrastructure.security;
 
+import com.groupsoft.piedrazul.appointment.application.usecase.ExportAppointmentsCsvUseCase;
 import com.groupsoft.piedrazul.appointment.application.usecase.QueryAvailableSlotsUseCase;
 import com.groupsoft.piedrazul.appointment.application.usecase.ScheduleAppointmentUseCase;
 import com.groupsoft.piedrazul.appointment.application.usecase.SearchAppointmentsByDoctorAndDateUseCase;
+import com.groupsoft.piedrazul.appointment.application.usecase.SearchAppointmentsByPatientDocumentUseCase;
 import com.groupsoft.piedrazul.availability.application.service.DoctorQueryService;
 import com.groupsoft.piedrazul.availability.application.usecase.ConfigureDoctorSchedulingUseCase;
 import com.groupsoft.piedrazul.availability.application.usecase.GetDoctorSchedulingConfigUseCase;
@@ -64,6 +66,12 @@ class SecurityAuthorizationTest {
 
     @MockBean
     private SearchAppointmentsByDoctorAndDateUseCase searchAppointmentsByDoctorAndDateUseCase;
+
+    @MockBean
+    private ExportAppointmentsCsvUseCase exportAppointmentsCsvUseCase;
+
+    @MockBean
+    private SearchAppointmentsByPatientDocumentUseCase searchAppointmentsByPatientDocumentUseCase;
 
     @MockBean
     private DoctorQueryService doctorQueryService;

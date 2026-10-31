@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
@@ -9,6 +9,7 @@ import {
 import { AvailabilityService, DoctorDTO } from '../../../core/services/availability/service';
 import { httpErrorMessage } from '../../../core/http/error-message';
 import { appointmentDateError } from '../../../core/validation/validators';
+import { AuthService } from '../../../core/auth/auth.service';
 
 @Component({
   selector: 'app-appointment-list',
@@ -25,9 +26,12 @@ export class AppointmentListComponent implements OnInit {
   loading = false;
   searched = false;
   searchError = '';
+  exportError = '';
+  exporting = false;
   doctorError = '';
   dateError = '';
   doctorsError = '';
+  private auth = inject(AuthService);
 
   constructor(
     private appointmentService: AppointmentService,
@@ -39,7 +43,7 @@ export class AppointmentListComponent implements OnInit {
   }
 
   audience(): string {
-    return 'Agendador';
+    return this.auth.session()?.role === 'DOCTOR' ? 'Médico / terapista' : 'Agendador';
   }
 
   statusLabel(status: string): string {
@@ -66,11 +70,23 @@ export class AppointmentListComponent implements OnInit {
 
   private loadDoctors() {
     this.availabilityService.getDoctors().subscribe({
-      next: (doctors) => { this.doctors = doctors; },
+      next: (doctors) => {
+        this.doctors = doctors;
+        const ownDoctorId = this.auth.session()?.doctorId;
+        if (ownDoctorId && doctors.some((doctor) => doctor.id === ownDoctorId)) {
+          this.selectedDoctorId = ownDoctorId;
+        }
+      },
       error: (error) => {
         this.doctorsError = httpErrorMessage(error, 'No se pudo cargar la lista de médicos.');
       }
     });
+  }
+
+  private filtersAreValid(): boolean {
+    this.doctorError = this.selectedDoctorId ? '' : 'Selecciona un médico o terapista.';
+    this.dateError = appointmentDateError(this.selectedDate) ?? '';
+    return !this.doctorError && !this.dateError;
   }
 
   search() {
@@ -78,9 +94,7 @@ export class AppointmentListComponent implements OnInit {
       return;
     }
     this.searchError = '';
-    this.doctorError = this.selectedDoctorId ? '' : 'Selecciona un médico o terapista.';
-    this.dateError = appointmentDateError(this.selectedDate) ?? '';
-    if (this.doctorError || this.dateError) {
+    if (!this.filtersAreValid()) {
       return;
     }
 
@@ -101,5 +115,51 @@ export class AppointmentListComponent implements OnInit {
           this.searchError = httpErrorMessage(err, 'No se pudo realizar la búsqueda.');
         }
       });
+  }
+
+  exportCsv() {
+    if (this.exporting) {
+      return;
+    }
+    this.exportError = '';
+    if (!this.filtersAreValid()) {
+      return;
+    }
+
+    const doctorId = this.selectedDoctorId!;
+    const date = this.selectedDate;
+    this.exporting = true;
+    this.appointmentService.exportAppointments(doctorId, date)
+      .pipe(finalize(() => { this.exporting = false; }))
+      .subscribe({
+        next: (blob) => this.downloadCsv(blob, doctorId, date),
+        error: (err) => { void this.readExportError(err); }
+      });
+  }
+
+  private downloadCsv(blob: Blob, doctorId: number, date: string) {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `citas-${doctorId}-${date}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private async readExportError(error: unknown) {
+    const blob = error && typeof error === 'object' && 'error' in error
+      ? (error as { error?: unknown }).error
+      : null;
+    if (blob instanceof Blob) {
+      try {
+        const parsed = JSON.parse(await blob.text()) as { message?: string };
+        this.exportError = parsed.message || 'No se pudo exportar el listado.';
+        return;
+      } catch {
+        this.exportError = 'No se pudo exportar el listado.';
+        return;
+      }
+    }
+    this.exportError = httpErrorMessage(error, 'No se pudo exportar el listado.');
   }
 }

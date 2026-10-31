@@ -24,6 +24,20 @@ export interface AppointmentSearchResultDTO {
   appointments: AppointmentResponseDTO[];
 }
 
+export interface PatientAppointmentHistoryDTO {
+  patientId: number;
+  patientName: string;
+  patientDocument: string;
+  total: number;
+  appointments: AppointmentResponseDTO[];
+}
+
+export interface PatientSuggestionDTO {
+  id: number;
+  fullName: string;
+  documentNumber: string;
+}
+
 export interface ScheduleAppointmentRequest {
   documentNumber: string;
   doctorId: number;
@@ -63,6 +77,27 @@ export class AppointmentService {
     return this.http.post<ScheduleAppointmentConfirmationDTO>(
       `${API_BASE_URL}/appointments`,
       payload
+    );
+  }
+
+  exportAppointments(doctorId: number, date: string): Observable<Blob> {
+    return this.http.get(
+      `${API_BASE_URL}/appointments/doctor/${doctorId}/export?date=${date}`,
+      { responseType: 'blob' }
+    );
+  }
+
+  getAppointmentsByPatientDocument(documentNumber: string): Observable<PatientAppointmentHistoryDTO> {
+    return this.http.get<PatientAppointmentHistoryDTO>(
+      `${API_BASE_URL}/appointments/patient`,
+      { params: { document: documentNumber } }
+    );
+  }
+
+  suggestPatients(documentPrefix: string): Observable<PatientSuggestionDTO[]> {
+    return this.http.get<PatientSuggestionDTO[]>(
+      `${API_BASE_URL}/patients/suggest`,
+      { params: { document: documentPrefix } }
     );
   }
 }
