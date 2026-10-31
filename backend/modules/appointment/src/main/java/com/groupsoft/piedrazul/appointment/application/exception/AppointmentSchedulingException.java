@@ -57,6 +57,20 @@ public class AppointmentSchedulingException extends DomainException {
         );
     }
 
+    public static AppointmentSchedulingException patientMismatch() {
+        return new AppointmentSchedulingException(
+                "PATIENT_MISMATCH",
+                "Solo puedes agendar citas a tu propio nombre."
+        );
+    }
+
+    public static AppointmentSchedulingException invalidNotes() {
+        return new AppointmentSchedulingException(
+                "INVALID_NOTES",
+                "Las notas admiten maximo 300 caracteres y no pueden tener caracteres de control."
+        );
+    }
+
     public static AppointmentSchedulingException slotNotAvailable() {
         return new AppointmentSchedulingException(
                 "SLOT_NOT_AVAILABLE",
