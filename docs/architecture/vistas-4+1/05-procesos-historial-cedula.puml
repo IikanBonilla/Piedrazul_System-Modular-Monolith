@@ -1,0 +1,85 @@
+@startuml historial-cedula
+title Proceso - historial por cedula y autocompletado
+
+' fuente: keycloak/import/piedrazul-realm.json
+actor Agendador
+' fuente: frontend/src/app/pages/clinical/patient-history/component.ts
+participant "PatientHistoryComponent" as Page
+' fuente: frontend/src/app/core/services/appointment/service.ts
+participant "AppointmentService" as Svc
+' fuente: frontend/src/app/core/auth/auth.interceptor.ts
+participant "authInterceptor" as Http
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+participant "SecurityConfig" as Sec
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/PatientSuggestionController.java
+participant "PatientSuggestionController" as SugApi
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/application/usecase/SuggestPatientsByDocumentUseCase.java
+participant "SuggestPatientsByDocumentUseCase" as SugUc
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/domain/repository/UserRepository.java
+participant "UserRepository" as Users
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AppointmentSearchController.java
+participant "AppointmentSearchController" as HisApi
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/SearchAppointmentsByPatientDocumentUseCase.java
+participant "SearchAppointmentsByPatientDocumentUseCase" as HisUc
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/infrastructure/adapter/UserQueryAdapter.java
+participant "UserQueryPort\nUserQueryAdapter" as UserPort
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/infrastructure/persistence/AppointmentRepositoryAdapter.java
+participant "AppointmentRepositoryPort\nAppointmentRepositoryAdapter" as Appts
+
+== Autocompletado ==
+' fuente: frontend/src/app/pages/clinical/patient-history/component.ts
+Agendador -> Page : onDocumentInput()
+alt menos de 3 digitos
+  ' fuente: frontend/src/app/pages/clinical/patient-history/component.ts
+  Page --> Agendador : suggestions vacio\nsin GET /patients/suggest
+else al menos 3 digitos, tras 250 ms
+  ' fuente: frontend/src/app/core/services/appointment/service.ts
+  Page -> Svc : suggestPatients(prefix)
+  ' fuente: frontend/src/app/core/services/appointment/service.ts
+  Svc -> Http : GET /api/v1/patients/suggest?document=
+  ' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+  Http -> Sec : hasAnyRole SCHEDULER, DOCTOR
+  ' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/PatientSuggestionController.java
+  Sec -> SugApi : suggest
+  ' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/application/usecase/SuggestPatientsByDocumentUseCase.java
+  SugApi -> SugUc : execute(document)
+  ' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/domain/repository/UserRepository.java
+  SugUc -> Users : findTop8 PATIENT activos\ncon documentNumber que empieza por el prefijo
+  ' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/application/usecase/SuggestPatientsByDocumentUseCase.java
+  Users --> Page : hasta 8 PatientSuggestionDTO
+  ' fuente: frontend/src/app/pages/clinical/patient-history/component.ts
+  Agendador -> Page : selectSuggestion
+  ' fuente: frontend/src/app/pages/clinical/patient-history/component.ts
+  Page -> Page : documentQuery = documentNumber\ny search()
+end
+
+== Historial ==
+' fuente: frontend/src/app/pages/clinical/patient-history/component.ts
+Agendador -> Page : search()
+alt documentError: vacio o fuera de 6 a 15 digitos
+  ' fuente: frontend/src/app/core/validation/validators.ts
+  Page --> Agendador : documentFieldError\nsin GET /appointments/patient
+else cedula de 6 a 15 digitos
+  ' fuente: frontend/src/app/core/services/appointment/service.ts
+  Page -> Svc : getAppointmentsByPatientDocument
+  ' fuente: frontend/src/app/core/services/appointment/service.ts
+  Svc -> Http : GET /api/v1/appointments/patient?document=
+  ' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+  Http -> Sec : hasAnyRole SCHEDULER, DOCTOR
+  ' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AppointmentSearchController.java
+  Sec -> HisApi : searchByPatientDocument
+  ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/SearchAppointmentsByPatientDocumentUseCase.java
+  HisApi -> HisUc : execute(document)
+  ' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/infrastructure/adapter/UserQueryAdapter.java
+  HisUc -> UserPort : findByDocumentNumber\nsolo PATIENT activo
+  ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/infrastructure/persistence/AppointmentRepositoryAdapter.java
+  HisUc -> Appts : findByPatientId
+  ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/infrastructure/persistence/AppointmentJpaRepository.java
+  Appts -> Appts : findByPatientIdOrderByAppointmentDateDesc
+  ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/SearchAppointmentsByPatientDocumentUseCase.java
+  HisUc --> Page : PatientAppointmentHistoryDTO\npatientName, patientDocument, total, appointments
+  ' fuente: frontend/src/app/pages/clinical/patient-history/component.html
+  Page --> Agendador : tabla o el texto de paciente sin citas
+end
+
+@enduml

@@ -1,0 +1,34 @@
+@startuml contexto
+' C4-PlantUML v2.14.0 https://github.com/plantuml-stdlib/C4-PlantUML/releases/tag/v2.14.0
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/v2.14.0/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+title Contexto - Piedrazul
+
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/domain/model/Role.java
+Person(scheduler, "Agendador", "Rol SCHEDULER")
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/domain/model/Role.java
+Person(patient, "Paciente", "Rol PATIENT")
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/domain/model/Role.java y keycloak/import/piedrazul-realm.json
+Person(doctor, "Medico", "Rol DOCTOR. El realm lo describe como medico o terapista")
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/domain/model/Role.java
+Person(admin, "Administrador", "Rol ADMINISTRATOR")
+
+' fuente: pom.xml
+System(piedrazul, "Piedrazul", "Monolito modular Spring Boot y SPA Angular de agendamiento de citas")
+' fuente: backend/piedrazul-app/src/main/resources/application.properties
+System_Ext(keycloak, "Keycloak", "Emite el access token. El backend no emite tokens")
+
+' fuente: keycloak/import/piedrazul-realm.json
+Rel(scheduler, piedrazul, "Consulta citas, exporta CSV y busca historial por cedula")
+' fuente: keycloak/import/piedrazul-realm.json
+Rel(doctor, piedrazul, "Consulta citas del dia, exporta CSV y busca historial por cedula")
+' fuente: keycloak/import/piedrazul-realm.json
+Rel(patient, piedrazul, "Consulta franjas y agenda su cita")
+' fuente: keycloak/import/piedrazul-realm.json
+Rel(admin, piedrazul, "Configura los horarios de atencion")
+' fuente: frontend/src/app/core/auth/keycloak.config.ts
+Rel(piedrazul, keycloak, "Pide el token y valida el JWT del realm piedrazul", "http:~/~/localhost:8081/realms/piedrazul")
+
+SHOW_LEGEND()
+@enduml
