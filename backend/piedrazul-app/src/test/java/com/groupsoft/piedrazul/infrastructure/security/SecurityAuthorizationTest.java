@@ -1,5 +1,6 @@
 package com.groupsoft.piedrazul.infrastructure.security;
 
+import com.groupsoft.piedrazul.appointment.application.exception.AppointmentSchedulingException;
 import com.groupsoft.piedrazul.appointment.application.usecase.ExportAppointmentsCsvUseCase;
 import com.groupsoft.piedrazul.appointment.application.usecase.QueryAvailableSlotsUseCase;
 import com.groupsoft.piedrazul.appointment.application.usecase.ScheduleAppointmentUseCase;
@@ -17,6 +18,7 @@ import com.groupsoft.piedrazul.infrastructure.web.AvailabilitySlotsController;
 import com.groupsoft.piedrazul.infrastructure.web.DoctorController;
 import com.groupsoft.piedrazul.infrastructure.web.DoctorSchedulingConfigController;
 import com.groupsoft.piedrazul.infrastructure.web.PatientRegistrationController;
+import com.groupsoft.piedrazul.user.application.dto.SessionProfile;
 import com.groupsoft.piedrazul.user.domain.model.Role;
 import com.groupsoft.piedrazul.user.domain.model.User;
 import org.junit.jupiter.api.Test;
@@ -24,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.web.servlet.MockMvc;
@@ -33,6 +36,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -112,13 +117,31 @@ class SecurityAuthorizationTest {
     void patientCanBookAndReadSlotsAndSchedulerCannotBook() throws Exception {
         when(jwtDecoder.decode("patient")).thenReturn(token("PATIENT"));
         when(jwtDecoder.decode("scheduler")).thenReturn(token("SCHEDULER"));
+        when(currentSessionService.profile(any())).thenReturn(patientSession());
 
         mockMvc.perform(post("/api/v1/appointments").header("Authorization", "Bearer patient"))
                 .andExpect(status().isCreated());
+        verify(scheduleAppointmentUseCase).execute(eq(10L), any());
         mockMvc.perform(get("/api/v1/doctors/4/slots").header("Authorization", "Bearer patient"))
                 .andExpect(status().isOk());
         mockMvc.perform(post("/api/v1/appointments").header("Authorization", "Bearer scheduler"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void patientCannotBookForAnotherPatient() throws Exception {
+        when(jwtDecoder.decode("patient")).thenReturn(token("PATIENT"));
+        when(currentSessionService.profile(any())).thenReturn(patientSession());
+        when(scheduleAppointmentUseCase.execute(eq(10L), any()))
+                .thenThrow(AppointmentSchedulingException.patientMismatch());
+
+        mockMvc.perform(post("/api/v1/appointments")
+                        .header("Authorization", "Bearer patient")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"documentNumber\":\"9876543210\",\"doctorId\":1,"
+                                + "\"slot\":\"2026-09-21T11:00:00\",\"confirmed\":true}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("PATIENT_MISMATCH"));
     }
 
     @Test
@@ -153,6 +176,10 @@ class SecurityAuthorizationTest {
                         .contentType("application/json")
                         .content("{}"))
                 .andExpect(status().isCreated());
+    }
+
+    private SessionProfile patientSession() {
+        return new SessionProfile(0L, 10L, "patient", "Juan Perez", "PATIENT", null, null, null);
     }
 
     private Jwt token(String role) {

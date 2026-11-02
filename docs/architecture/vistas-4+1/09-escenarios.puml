@@ -1,0 +1,91 @@
+@startuml escenarios
+left to right direction
+title Vista de escenarios - casos de uso por rol
+
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/domain/model/Role.java
+actor "Agendador\nSCHEDULER" as scheduler
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/domain/model/Role.java
+actor "Paciente\nPATIENT" as patient
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/domain/model/Role.java
+actor "Medico\nDOCTOR" as doctor
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/domain/model/Role.java
+actor "Administrador\nADMINISTRATOR" as admin
+
+' fuente: frontend/src/app/core/auth/auth.service.ts
+usecase "Iniciar sesion\npassword grant y GET /auth/me" as UC_LOGIN
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AppointmentSearchController.java
+usecase "Consultar citas\npor medico y fecha" as UC_SEARCH
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AppointmentSearchController.java
+usecase "Exportar la jornada a CSV" as UC_CSV
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AppointmentSearchController.java
+usecase "Consultar historial\npor cedula" as UC_HISTORY
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/application/usecase/SuggestPatientsByDocumentUseCase.java
+usecase "Autocompletar pacientes\ndesde el tercer digito" as UC_SUGGEST
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/DoctorController.java
+usecase "Listar medicos activos" as UC_DOCTORS
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AvailabilitySlotsController.java
+usecase "Consultar franjas disponibles" as UC_SLOTS
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AppointmentSchedulingController.java
+usecase "Agendar una cita" as UC_SCHEDULE
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AuthController.java
+usecase "Registrar paciente o medico" as UC_REGISTER
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/DoctorSchedulingConfigController.java
+usecase "Consultar y guardar\nla configuracion de agenda" as UC_CONFIG
+
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/config/DemoDataInitializer.java
+scheduler --> UC_LOGIN
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/config/DemoDataInitializer.java
+doctor --> UC_LOGIN
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/config/DemoDataInitializer.java
+patient --> UC_LOGIN
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/config/DemoDataInitializer.java
+admin --> UC_LOGIN
+
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+scheduler --> UC_SEARCH
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+doctor --> UC_SEARCH
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+scheduler --> UC_CSV
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+doctor --> UC_CSV
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+scheduler --> UC_HISTORY
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+doctor --> UC_HISTORY
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+scheduler --> UC_SUGGEST
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+doctor --> UC_SUGGEST
+
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+scheduler --> UC_DOCTORS
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+doctor --> UC_DOCTORS
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+patient --> UC_DOCTORS
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+admin --> UC_DOCTORS
+
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+patient --> UC_SLOTS
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+patient --> UC_SCHEDULE
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+admin --> UC_CONFIG
+
+note bottom of UC_REGISTER
+  POST /api/v1/auth/register y POST /api/v1/patients/register
+  son permitAll. RegistrationRules solo acepta PATIENT y DOCTOR.
+  SCHEDULER y ADMINISTRATOR reciben error de formulario publico.
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/application/validation/RegistrationRules.java
+end note
+
+note bottom of UC_CSV
+  SecurityConfig autoriza GET /api/v1/appointments/doctor/**
+  y esa ruta incluye /export.
+  No hay un matcher distinto para el CSV.
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+end note
+
+@enduml

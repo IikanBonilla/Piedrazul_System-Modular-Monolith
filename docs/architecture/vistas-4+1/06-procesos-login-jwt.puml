@@ -1,0 +1,66 @@
+@startuml login-jwt
+title Proceso - login con JWT de Keycloak
+
+' fuente: frontend/src/app/pages/auth/login/component.ts
+actor Usuario
+' fuente: frontend/src/app/pages/auth/login/component.ts
+participant "LoginComponent" as Page
+' fuente: frontend/src/app/core/auth/auth.service.ts
+participant "AuthService" as Auth
+' fuente: frontend/src/app/core/auth/auth.interceptor.ts
+participant "authInterceptor" as Http
+' fuente: frontend/src/app/core/auth/keycloak.config.ts
+participant "Keycloak" as Kc
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+participant "SecurityConfig" as Sec
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/KeycloakRealmRoleConverter.java
+participant "KeycloakRealmRoleConverter" as Roles
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AuthController.java
+participant "AuthController" as Api
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/CurrentSessionService.java
+participant "CurrentSessionService" as Session
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/domain/repository/UserRepository.java
+participant "UserRepository" as Users
+
+' fuente: frontend/src/app/pages/auth/login/component.ts
+Usuario -> Page : submit()
+' fuente: frontend/src/app/core/auth/auth.service.ts
+Page -> Auth : login(username, password)
+' fuente: frontend/src/app/core/auth/auth.service.ts
+Auth -> Http : POST /realms/piedrazul/protocol/openid-connect/token\ngrant_type=password, client_id=piedrazul-web
+note right of Http
+  token() aun es null, asi que no agrega Bearer.
+  La URL del token se trata como login:
+  un 401 no redirige a /login.
+' fuente: frontend/src/app/core/auth/auth.interceptor.ts
+end note
+' fuente: frontend/src/app/core/auth/keycloak.config.ts
+Http -> Kc : password grant
+' fuente: frontend/src/app/core/auth/auth.service.ts
+Kc --> Auth : access_token, expires_in
+' fuente: frontend/src/app/core/auth/auth.service.ts
+Auth -> Http : GET /api/v1/auth/me\nAuthorization Bearer puesto por AuthService
+' fuente: backend/piedrazul-app/src/main/resources/application.properties
+Http -> Sec : oauth2ResourceServer jwt\nissuer-uri http:~/~/localhost:8081/realms/piedrazul
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/KeycloakRealmRoleConverter.java
+Sec -> Roles : convert(jwt)\nROLE_ a partir de realm_access.roles, roles o resource_access
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+Sec -> Api : me(jwt). La ruta exige authenticated
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/CurrentSessionService.java
+Api -> Session : profile(jwt)
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/KeycloakRealmRoleConverter.java
+Session -> Roles : primaryApplicationRole y username\npreferred_username, si no subject
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/CurrentSessionService.java
+Session -> Users : findByUsernameIgnoreCase
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/CurrentSessionService.java
+Users --> Session : User activo
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/application/dto/SessionProfile.java
+Session --> Auth : SessionProfile
+' fuente: frontend/src/app/core/auth/auth.service.ts
+Auth -> Auth : sessionStorage piedrazul.session
+' fuente: frontend/src/app/pages/auth/login/component.ts
+Auth --> Page : SessionUser
+' fuente: frontend/src/app/core/auth/auth.service.ts
+Page -> Page : navigateByUrl(homeRoute)\nPATIENT /paciente, DOCTOR /medico,\nADMINISTRATOR /admin/configuracion, SCHEDULER /agendador
+
+@enduml

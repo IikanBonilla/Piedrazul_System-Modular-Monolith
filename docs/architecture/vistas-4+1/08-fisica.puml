@@ -1,0 +1,68 @@
+@startuml fisica
+title Vista fisica - lo que docker-compose.yml despliega y los procesos locales
+
+' fuente: docker-compose.yml
+node "localhost" as host {
+  ' fuente: docker-compose.yml
+  node "docker compose" as compose {
+    ' fuente: docker-compose.yml
+    node "piedrazul-postgres" as pg {
+      ' fuente: docker-compose.yml
+      artifact "imagen postgres:16-alpine" as pgImage
+      ' fuente: docker-compose.yml
+      artifact "puerto publicado 5432:5432" as pgPort
+      ' fuente: docker-compose.yml
+      artifact "POSTGRES_DB piedrazul_db" as pgDb
+      ' fuente: docker-compose.yml
+      artifact "POSTGRES_USER piedrazul_user" as pgUser
+      ' fuente: docker-compose.yml
+      artifact "volumen piedrazul_pgdata" as pgVol
+    }
+    ' fuente: docker-compose.yml
+    node "piedrazul-keycloak" as kc {
+      ' fuente: docker-compose.yml
+      artifact "imagen quay.io/keycloak/keycloak:26.0.7" as kcImage
+      ' fuente: docker-compose.yml
+      artifact "puerto publicado 8081:8080" as kcPort
+      ' fuente: docker-compose.yml
+      artifact "KC_HTTP_PORT 8080" as kcHttp
+      ' fuente: docker-compose.yml
+      artifact "comando start-dev --import-realm" as kcCmd
+      ' fuente: docker-compose.yml
+      artifact "volumen ./keycloak/import" as kcImport
+      ' fuente: docker-compose.yml
+      artifact "volumen piedrazul_keycloak" as kcVol
+    }
+  }
+  ' fuente: backend/piedrazul-app/src/main/resources/application.properties
+  node "proceso piedrazul-app" as api {
+    ' fuente: backend/piedrazul-app/src/main/resources/application.properties
+    artifact "server.port 8080" as apiPort
+    ' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/PiedrazulApplication.java
+    artifact "PiedrazulApplication" as main
+  }
+  ' fuente: frontend/package.json
+  node "proceso frontend" as web {
+    ' fuente: frontend/package.json
+    artifact "npm start = ng serve" as ng
+    ' fuente: keycloak/import/piedrazul-realm.json
+    artifact "http:~/~/localhost:4200" as origin
+  }
+}
+
+' fuente: frontend/src/app/core/api/api-config.ts
+web --> api : API_BASE_URL http:~/~/localhost:8080/api/v1
+' fuente: frontend/src/app/core/auth/keycloak.config.ts
+web --> kc : token http:~/~/localhost:8081/realms/piedrazul
+' fuente: backend/piedrazul-app/src/main/resources/application.properties
+api --> pg : jdbc localhost:5432/piedrazul_db
+' fuente: backend/piedrazul-app/src/main/resources/application.properties
+api --> kc : issuer http:~/~/localhost:8081/realms/piedrazul
+
+note bottom of api
+  piedrazul-app y el frontend no aparecen como services
+  en docker-compose.yml. README.md los arranca con mvnw y npm.
+' fuente: docker-compose.yml y README.md
+end note
+
+@enduml

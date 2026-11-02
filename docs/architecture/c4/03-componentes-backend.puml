@@ -1,0 +1,228 @@
+@startuml componentes-backend
+' C4-PlantUML v2.14.0 https://github.com/plantuml-stdlib/C4-PlantUML/releases/tag/v2.14.0
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/v2.14.0/C4_Component.puml
+
+LAYOUT_TOP_DOWN()
+title Componentes del backend - un solo proceso PiedrazulApplication
+
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/PiedrazulApplication.java
+Container_Boundary(jvm, "piedrazul-app", "", "", "SpringApplication, scanBasePackages com.groupsoft.piedrazul") {
+
+    ' fuente: backend/modules/shared-kernel/pom.xml
+    Boundary(shared, "shared-kernel", "artifact shared-kernel") {
+        ' fuente: backend/modules/shared-kernel/src/main/java/com/groupsoft/piedrazul/shared/port/UserQueryPort.java
+        Component(userQueryPort, "UserQueryPort", "interface", "findById, findByDocumentNumber")
+        ' fuente: backend/modules/shared-kernel/src/main/java/com/groupsoft/piedrazul/shared/port/DoctorQueryPort.java
+        Component(doctorQueryPort, "DoctorQueryPort", "interface", "existsById, findById")
+        ' fuente: backend/modules/shared-kernel/src/main/java/com/groupsoft/piedrazul/shared/port/DoctorSchedulePort.java
+        Component(doctorSchedulePort, "DoctorSchedulePort", "interface", "candidateSlots, isDateWithinBookingWindow")
+    }
+
+    ' fuente: backend/modules/user/pom.xml
+    Boundary(userMod, "user", "artifact user-module") {
+        ' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/application/port/IdentityProvisioner.java
+        Component(identityPort, "IdentityProvisioner", "interface", "provision, rollback")
+        ' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/domain/repository/UserRepository.java
+        Component(userRepo, "UserRepository", "JpaRepository", "app_users")
+        ' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/infrastructure/adapter/UserQueryAdapter.java
+        Component(userQueryAdapter, "UserQueryAdapter", "Component", "implementa UserQueryPort")
+        ' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/application/usecase/RegisterUserUseCase.java
+        Component(registerUser, "RegisterUserUseCase", "Service", "registra ficha y pide el alta en el IdP")
+        ' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/application/usecase/SuggestPatientsByDocumentUseCase.java
+        Component(suggestPatients, "SuggestPatientsByDocumentUseCase", "Service", "prefijo minimo de 3 digitos")
+        ' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/infrastructure/config/PasswordEncoderConfig.java
+        Component(passwordEncoder, "PasswordEncoderConfig", "BCryptPasswordEncoder")
+    }
+
+    ' fuente: backend/modules/availability/pom.xml
+    Boundary(availabilityMod, "availability", "artifact availability-module") {
+        ' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/domain/repository/DoctorRepository.java
+        Component(doctorRepo, "DoctorRepository", "JpaRepository", "doctors")
+        ' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/domain/repository/DoctorSchedulingConfigRepository.java
+        Component(configRepo, "DoctorSchedulingConfigRepository", "JpaRepository", "doctor_scheduling_configs")
+        ' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/domain/model/DoctorWorkingHours.java
+        Component(workingHours, "DoctorWorkingHours", "dominio", "slotsFor, isWithinBookingWindow")
+        ' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/infrastructure/adapter/DoctorQueryAdapter.java
+        Component(doctorQueryAdapter, "DoctorQueryAdapter", "Component", "implementa DoctorQueryPort")
+        ' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/infrastructure/adapter/DoctorScheduleAdapter.java
+        Component(doctorScheduleAdapter, "DoctorScheduleAdapter", "Component", "implementa DoctorSchedulePort")
+        ' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/application/service/DoctorQueryService.java
+        Component(doctorQueryService, "DoctorQueryService", "Service", "findAllActive")
+        ' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/application/usecase/ConfigureDoctorSchedulingUseCase.java
+        Component(configureSchedule, "ConfigureDoctorSchedulingUseCase", "Service")
+        ' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/application/usecase/GetDoctorSchedulingConfigUseCase.java
+        Component(getSchedule, "GetDoctorSchedulingConfigUseCase", "Service")
+    }
+
+    ' fuente: backend/modules/appointment/pom.xml
+    Boundary(appointmentMod, "appointment", "artifact appointment-module") {
+        ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/domain/port/AppointmentRepositoryPort.java
+        Component(appointmentPort, "AppointmentRepositoryPort", "interface", "findByDoctorAndDateRange, findByPatientId, existsActiveByDoctorAndDateTime, save")
+        ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/infrastructure/persistence/AppointmentJpaRepository.java
+        Component(appointmentJpa, "AppointmentJpaRepository", "JpaRepository", "appointments")
+        ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/infrastructure/persistence/AppointmentRepositoryAdapter.java
+        Component(appointmentAdapter, "AppointmentRepositoryAdapter", "Repository", "implementa AppointmentRepositoryPort")
+        ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/SearchAppointmentsByDoctorAndDateUseCase.java
+        Component(searchByDoctor, "SearchAppointmentsByDoctorAndDateUseCase", "Service", "HE-01")
+        ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/ScheduleAppointmentUseCase.java
+        Component(scheduleUc, "ScheduleAppointmentUseCase", "Service", "HE-02")
+        ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/QueryAvailableSlotsUseCase.java
+        Component(slotsUc, "QueryAvailableSlotsUseCase", "Service", "HE-02 y HE-03")
+        ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/ExportAppointmentsCsvUseCase.java
+        Component(exportUc, "ExportAppointmentsCsvUseCase", "Service")
+        ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/SearchAppointmentsByPatientDocumentUseCase.java
+        Component(historyUc, "SearchAppointmentsByPatientDocumentUseCase", "Service")
+        ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/mapper/AppointmentAssembler.java
+        Component(assembler, "AppointmentAssembler", "Component")
+        ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/enricher/DefaultAppointmentResponseEnricher.java
+        Component(enricher, "DefaultAppointmentResponseEnricher", "Component", "unica implementacion de AppointmentResponseEnricher")
+        ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/export/AppointmentCsvWriter.java
+        Component(csvWriter, "AppointmentCsvWriter", "Component", "separador ; y BOM UTF-8")
+    }
+
+    ' fuente: backend/piedrazul-app/pom.xml
+    Boundary(appMod, "adaptadores de entrada y seguridad", "modulo piedrazul-app") {
+        ' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AppointmentSearchController.java
+        Component(searchApi, "AppointmentSearchController", "RestController", "/api/v1/appointments")
+        ' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AppointmentSchedulingController.java
+        Component(scheduleApi, "AppointmentSchedulingController", "RestController", "POST /api/v1/appointments")
+        ' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AvailabilitySlotsController.java
+        Component(slotsApi, "AvailabilitySlotsController", "RestController", "GET /api/v1/doctors/{doctorId}/slots")
+        ' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/DoctorController.java
+        Component(doctorApi, "DoctorController", "RestController", "GET /api/v1/doctors")
+        ' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/DoctorSchedulingConfigController.java
+        Component(configApi, "DoctorSchedulingConfigController", "RestController", "/api/v1/admin/doctors/{doctorId}/scheduling-config")
+        ' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/PatientSuggestionController.java
+        Component(suggestApi, "PatientSuggestionController", "RestController", "GET /api/v1/patients/suggest")
+        ' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/PatientRegistrationController.java
+        Component(registerPatientApi, "PatientRegistrationController", "RestController", "POST /api/v1/patients/register")
+        ' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AuthController.java
+        Component(authApi, "AuthController", "RestController", "GET /api/v1/auth/me y POST /api/v1/auth/register")
+        ' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/service/RegisterAccountService.java
+        Component(accounts, "RegisterAccountService", "Service")
+        ' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/CurrentSessionService.java
+        Component(sessionSvc, "CurrentSessionService", "Service")
+        ' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+        Component(security, "SecurityConfig", "SecurityFilterChain", "oauth2ResourceServer jwt, sesion STATELESS")
+        ' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/KeycloakRealmRoleConverter.java
+        Component(roleConverter, "KeycloakRealmRoleConverter", "Converter Jwt a Authentication")
+        ' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/KeycloakIdentityProvisioner.java
+        Component(kcProvisioner, "KeycloakIdentityProvisioner", "Component", "implementa IdentityProvisioner")
+    }
+}
+
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/infrastructure/adapter/UserQueryAdapter.java
+Rel(userQueryAdapter, userQueryPort, "implementa")
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/infrastructure/adapter/UserQueryAdapter.java
+Rel(userQueryAdapter, userRepo, "findById, findByDocumentNumber")
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/application/usecase/RegisterUserUseCase.java
+Rel(registerUser, identityPort, "provision y rollback")
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/application/usecase/RegisterUserUseCase.java
+Rel(registerUser, userRepo, "busca duplicados y save")
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/application/usecase/RegisterUserUseCase.java
+Rel(registerUser, passwordEncoder, "encode")
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/application/usecase/SuggestPatientsByDocumentUseCase.java
+Rel(suggestPatients, userRepo, "findTop8ByRoleAndActiveTrueAndDocumentNumberStartingWith")
+
+' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/infrastructure/adapter/DoctorQueryAdapter.java
+Rel(doctorQueryAdapter, doctorQueryPort, "implementa")
+' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/infrastructure/adapter/DoctorQueryAdapter.java
+Rel(doctorQueryAdapter, doctorRepo, "existsById, findById")
+' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/infrastructure/adapter/DoctorScheduleAdapter.java
+Rel(doctorScheduleAdapter, doctorSchedulePort, "implementa")
+' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/infrastructure/adapter/DoctorScheduleAdapter.java
+Rel(doctorScheduleAdapter, configRepo, "findByDoctorId o defaultFor")
+' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/infrastructure/adapter/DoctorScheduleAdapter.java
+Rel(doctorScheduleAdapter, workingHours, "slotsFor, isWithinBookingWindow")
+' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/application/service/DoctorQueryService.java
+Rel(doctorQueryService, doctorRepo, "findAll y filtra active")
+' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/application/usecase/ConfigureDoctorSchedulingUseCase.java
+Rel(configureSchedule, doctorRepo, "existsById")
+' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/application/usecase/ConfigureDoctorSchedulingUseCase.java
+Rel(configureSchedule, configRepo, "findByDoctorId y save")
+' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/application/usecase/GetDoctorSchedulingConfigUseCase.java
+Rel(getSchedule, doctorRepo, "existsById")
+' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/application/usecase/GetDoctorSchedulingConfigUseCase.java
+Rel(getSchedule, configRepo, "findByDoctorId o defaultFor")
+
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/infrastructure/persistence/AppointmentRepositoryAdapter.java
+Rel(appointmentAdapter, appointmentPort, "implementa")
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/infrastructure/persistence/AppointmentRepositoryAdapter.java
+Rel(appointmentAdapter, appointmentJpa, "delega en Spring Data")
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/SearchAppointmentsByDoctorAndDateUseCase.java
+Rel(searchByDoctor, doctorQueryPort, "findById")
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/SearchAppointmentsByDoctorAndDateUseCase.java
+Rel(searchByDoctor, appointmentPort, "findByDoctorAndDateRange")
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/SearchAppointmentsByDoctorAndDateUseCase.java
+Rel(searchByDoctor, assembler, "toResponse")
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/ScheduleAppointmentUseCase.java
+Rel(scheduleUc, userQueryPort, "findByDocumentNumber")
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/ScheduleAppointmentUseCase.java
+Rel(scheduleUc, doctorQueryPort, "findById")
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/ScheduleAppointmentUseCase.java
+Rel(scheduleUc, doctorSchedulePort, "candidateSlots")
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/ScheduleAppointmentUseCase.java
+Rel(scheduleUc, appointmentPort, "findByDoctorAndDateRange y save")
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/QueryAvailableSlotsUseCase.java
+Rel(slotsUc, doctorQueryPort, "findById")
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/QueryAvailableSlotsUseCase.java
+Rel(slotsUc, doctorSchedulePort, "isDateWithinBookingWindow y candidateSlots")
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/QueryAvailableSlotsUseCase.java
+Rel(slotsUc, appointmentPort, "findByDoctorAndDateRange")
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/ExportAppointmentsCsvUseCase.java
+Rel(exportUc, searchByDoctor, "execute")
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/ExportAppointmentsCsvUseCase.java
+Rel(exportUc, csvWriter, "write")
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/SearchAppointmentsByPatientDocumentUseCase.java
+Rel(historyUc, userQueryPort, "findByDocumentNumber")
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/SearchAppointmentsByPatientDocumentUseCase.java
+Rel(historyUc, appointmentPort, "findByPatientId")
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/SearchAppointmentsByPatientDocumentUseCase.java
+Rel(historyUc, assembler, "toResponse")
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/mapper/AppointmentAssembler.java
+Rel(assembler, enricher, "enrich")
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/enricher/DefaultAppointmentResponseEnricher.java
+Rel(enricher, userQueryPort, "findById")
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/enricher/DefaultAppointmentResponseEnricher.java
+Rel(enricher, doctorQueryPort, "findById")
+
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AppointmentSearchController.java
+Rel(searchApi, searchByDoctor, "GET /doctor/{doctorId}")
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AppointmentSearchController.java
+Rel(searchApi, exportUc, "GET /doctor/{doctorId}/export")
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AppointmentSearchController.java
+Rel(searchApi, historyUc, "GET /patient")
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AppointmentSchedulingController.java
+Rel(scheduleApi, scheduleUc, "POST")
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AvailabilitySlotsController.java
+Rel(slotsApi, slotsUc, "GET slots")
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/DoctorController.java
+Rel(doctorApi, doctorQueryService, "GET")
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/DoctorSchedulingConfigController.java
+Rel(configApi, getSchedule, "GET")
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/DoctorSchedulingConfigController.java
+Rel(configApi, configureSchedule, "PUT")
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/PatientSuggestionController.java
+Rel(suggestApi, suggestPatients, "GET suggest")
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/PatientRegistrationController.java
+Rel(registerPatientApi, accounts, "POST register")
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AuthController.java
+Rel(authApi, sessionSvc, "GET /me")
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AuthController.java
+Rel(authApi, accounts, "POST /register")
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/service/RegisterAccountService.java
+Rel(accounts, registerUser, "execute")
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/service/RegisterAccountService.java
+Rel(accounts, doctorRepo, "save si el rol es DOCTOR")
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/service/RegisterAccountService.java
+Rel(accounts, userRepo, "save con doctorId")
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/CurrentSessionService.java
+Rel(sessionSvc, userRepo, "findByUsernameIgnoreCase")
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/CurrentSessionService.java
+Rel(sessionSvc, roleConverter, "primaryApplicationRole y username")
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+Rel(security, roleConverter, "jwtAuthenticationConverter")
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/KeycloakIdentityProvisioner.java
+Rel(kcProvisioner, identityPort, "implementa")
+
+@enduml

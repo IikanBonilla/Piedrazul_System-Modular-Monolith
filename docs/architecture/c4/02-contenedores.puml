@@ -1,0 +1,48 @@
+@startuml contenedores
+' C4-PlantUML v2.14.0 https://github.com/plantuml-stdlib/C4-PlantUML/releases/tag/v2.14.0
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/v2.14.0/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+title Contenedores - Piedrazul
+
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/domain/model/Role.java
+Person(scheduler, "Agendador", "SCHEDULER")
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/domain/model/Role.java
+Person(patient, "Paciente", "PATIENT")
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/domain/model/Role.java
+Person(doctor, "Medico", "DOCTOR")
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/domain/model/Role.java
+Person(admin, "Administrador", "ADMINISTRATOR")
+
+' fuente: pom.xml
+System_Boundary(piedrazul, "Piedrazul") {
+    ' fuente: frontend/package.json
+    Container(web, "frontend", "Angular, ng serve", "Proceso local. Origen http:~/~/localhost:4200. No es un servicio de docker-compose.yml")
+    ' fuente: backend/piedrazul-app/src/main/resources/application.properties
+    Container(api, "piedrazul-app", "Spring Boot 3.2.5, Java 21", "Proceso local. server.port=8080. No es un servicio de docker-compose.yml")
+    ' fuente: docker-compose.yml
+    ContainerDb(db, "PostgreSQL", "postgres:16-alpine", "Contenedor piedrazul-postgres. Puerto publicado 5432:5432. Base piedrazul_db, usuario piedrazul_user, volumen piedrazul_pgdata")
+    ' fuente: docker-compose.yml
+    Container(kc, "Keycloak", "quay.io/keycloak/keycloak:26.0.7", "Contenedor piedrazul-keycloak. Puerto publicado 8081:8080. KC_HTTP_PORT=8080. Comando start-dev --import-realm. Volumen ./keycloak/import")
+}
+
+' fuente: frontend/src/app/app.routes.ts
+Rel(scheduler, web, "Usa /agendador")
+' fuente: frontend/src/app/app.routes.ts
+Rel(doctor, web, "Usa /medico")
+' fuente: frontend/src/app/app.routes.ts
+Rel(patient, web, "Usa /paciente")
+' fuente: frontend/src/app/app.routes.ts
+Rel(admin, web, "Usa /admin")
+
+' fuente: frontend/src/app/core/api/api-config.ts
+Rel(web, api, "Llama la API", "http:~/~/localhost:8080/api/v1")
+' fuente: frontend/src/app/core/auth/keycloak.config.ts
+Rel(web, kc, "Pide el access token", "POST /realms/piedrazul/protocol/openid-connect/token")
+' fuente: backend/piedrazul-app/src/main/resources/application.properties
+Rel(api, db, "JDBC, esquema public", "jdbc:postgresql:~/~/localhost:5432/piedrazul_db")
+' fuente: backend/piedrazul-app/src/main/resources/application.properties
+Rel(api, kc, "Valida el issuer y llama la Admin API", "issuer http:~/~/localhost:8081/realms/piedrazul")
+
+SHOW_LEGEND()
+@enduml

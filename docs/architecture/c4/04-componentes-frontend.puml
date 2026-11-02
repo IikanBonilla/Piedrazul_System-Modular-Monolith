@@ -1,0 +1,130 @@
+@startuml componentes-frontend
+' C4-PlantUML v2.14.0 https://github.com/plantuml-stdlib/C4-PlantUML/releases/tag/v2.14.0
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/v2.14.0/C4_Component.puml
+
+LAYOUT_TOP_DOWN()
+title Componentes del frontend Angular
+
+' fuente: frontend/src/app/app.ts
+Container_Boundary(spa, "frontend", "", "", "Angular standalone") {
+
+    ' fuente: frontend/src/app/app.routes.ts
+    Boundary(pages, "paginas") {
+        ' fuente: frontend/src/app/core/auth/auth.guard.ts
+        Component(homeRedirect, "HomeRedirectComponent", "standalone", "path vacio")
+        ' fuente: frontend/src/app/pages/auth/login/component.ts
+        Component(loginPage, "LoginComponent", "standalone", "/login")
+        ' fuente: frontend/src/app/pages/auth/register/component.ts
+        Component(registerPage, "RegisterComponent", "standalone", "/registro")
+        ' fuente: frontend/src/app/pages/auth/forbidden/component.ts
+        Component(forbiddenPage, "ForbiddenComponent", "standalone", "/acceso-denegado")
+        ' fuente: frontend/src/app/pages/scheduler/appointment-list/component.ts
+        Component(schedulerList, "AppointmentListComponent", "standalone", "/agendador y /medico/citas")
+        ' fuente: frontend/src/app/pages/clinical/patient-history/component.ts
+        Component(historyPage, "PatientHistoryComponent", "standalone", "/agendador/historial y /medico/historial")
+        ' fuente: frontend/src/app/pages/doctor/home/component.ts
+        Component(doctorHome, "DoctorHomeComponent", "standalone", "/medico")
+        ' fuente: frontend/src/app/pages/patient/home/component.ts
+        Component(patientHome, "PatientHomeComponent", "standalone", "/paciente")
+        ' fuente: frontend/src/app/pages/patient/schedule/component.ts
+        Component(patientSchedule, "PatientScheduleComponent", "standalone", "/paciente/agendar")
+        ' fuente: frontend/src/app/pages/patient/available-slots/component.ts
+        Component(availableSlots, "AvailableSlotsComponent", "standalone", "/paciente/disponibilidad")
+        ' fuente: frontend/src/app/pages/admin/scheduling-config/component.ts
+        Component(adminConfig, "SchedulingConfigComponent", "standalone", "/admin/configuracion")
+    }
+
+    ' fuente: frontend/src/app/core/services/appointment/service.ts
+    Boundary(services, "servicios") {
+        ' fuente: frontend/src/app/core/services/appointment/service.ts
+        Component(appointmentSvc, "AppointmentService", "providedIn root")
+        ' fuente: frontend/src/app/core/services/availability/service.ts
+        Component(availabilitySvc, "AvailabilityService", "providedIn root")
+        ' fuente: frontend/src/app/core/auth/auth.service.ts
+        Component(authSvc, "AuthService", "providedIn root", "sessionStorage piedrazul.session")
+    }
+
+    ' fuente: frontend/src/app/core/auth/auth.guard.ts
+    Boundary(guards, "guards") {
+        ' fuente: frontend/src/app/core/auth/auth.guard.ts
+        Component(homeGuard, "homeRedirectGuard", "CanActivateFn")
+        ' fuente: frontend/src/app/core/auth/auth.guard.ts
+        Component(roles, "roleGuard", "CanActivateFn", "SCHEDULER, DOCTOR, PATIENT, ADMINISTRATOR")
+    }
+
+    ' fuente: frontend/src/app/core/auth/auth.interceptor.ts
+    Component(interceptor, "authInterceptor", "HttpInterceptorFn", "Authorization Bearer y 401 hacia /login")
+    ' fuente: frontend/src/app/app.config.ts
+    Component(httpSetup, "appConfig", "provideHttpClient(withInterceptors)", "registra authInterceptor")
+}
+
+' fuente: frontend/src/app/core/api/api-config.ts
+System_Ext(api, "piedrazul-app", "http:~/~/localhost:8080/api/v1")
+' fuente: frontend/src/app/core/auth/keycloak.config.ts
+System_Ext(kc, "Keycloak", "http:~/~/localhost:8081/realms/piedrazul")
+
+' fuente: frontend/src/app/core/auth/auth.guard.ts
+Rel(homeGuard, authSvc, "isLoggedIn y homeRoute")
+' fuente: frontend/src/app/core/auth/auth.guard.ts
+Rel(roles, authSvc, "session().role")
+' fuente: frontend/src/app/app.routes.ts
+Rel(homeGuard, homeRedirect, "canActivate del path vacio")
+' fuente: frontend/src/app/app.routes.ts
+Rel(roles, schedulerList, "SCHEDULER en /agendador y DOCTOR en /medico")
+' fuente: frontend/src/app/pages/scheduler/routes.ts y frontend/src/app/pages/doctor/routes.ts ; roleGuard en frontend/src/app/app.routes.ts
+Rel(roles, historyPage, "path historial bajo /agendador y bajo /medico")
+' fuente: frontend/src/app/pages/doctor/routes.ts
+Rel(roles, doctorHome, "DOCTOR")
+' fuente: frontend/src/app/pages/patient/routes.ts
+Rel(roles, patientHome, "PATIENT")
+' fuente: frontend/src/app/pages/patient/routes.ts
+Rel(roles, patientSchedule, "PATIENT")
+' fuente: frontend/src/app/pages/patient/routes.ts
+Rel(roles, availableSlots, "PATIENT")
+' fuente: frontend/src/app/pages/admin/routes.ts
+Rel(roles, adminConfig, "ADMINISTRATOR")
+
+' fuente: frontend/src/app/pages/auth/login/component.ts
+Rel(loginPage, authSvc, "login")
+' fuente: frontend/src/app/pages/auth/register/component.ts
+Rel(registerPage, authSvc, "register")
+' fuente: frontend/src/app/pages/auth/forbidden/component.ts
+Rel(forbiddenPage, authSvc, "isLoggedIn y homeRoute")
+' fuente: frontend/src/app/pages/doctor/home/component.ts
+Rel(doctorHome, authSvc, "session")
+' fuente: frontend/src/app/pages/patient/home/component.ts
+Rel(patientHome, authSvc, "session")
+' fuente: frontend/src/app/pages/scheduler/appointment-list/component.ts
+Rel(schedulerList, authSvc, "session para el medico propio y el rotulo")
+' fuente: frontend/src/app/pages/clinical/patient-history/component.ts
+Rel(historyPage, authSvc, "session para el rotulo")
+
+' fuente: frontend/src/app/pages/scheduler/appointment-list/component.ts
+Rel(schedulerList, appointmentSvc, "getAppointmentsByDoctorAndDate y exportAppointments")
+' fuente: frontend/src/app/pages/scheduler/appointment-list/component.ts
+Rel(schedulerList, availabilitySvc, "getDoctors")
+' fuente: frontend/src/app/pages/clinical/patient-history/component.ts
+Rel(historyPage, appointmentSvc, "suggestPatients y getAppointmentsByPatientDocument")
+' fuente: frontend/src/app/pages/patient/schedule/component.ts
+Rel(patientSchedule, availabilitySvc, "getDoctors y getAvailableSlots")
+' fuente: frontend/src/app/pages/patient/schedule/component.ts
+Rel(patientSchedule, appointmentSvc, "scheduleAppointment")
+' fuente: frontend/src/app/pages/patient/available-slots/component.ts
+Rel(availableSlots, availabilitySvc, "getDoctors y getAvailableSlots")
+' fuente: frontend/src/app/pages/admin/scheduling-config/component.ts
+Rel(adminConfig, availabilitySvc, "getDoctors, getSchedulingConfig y saveSchedulingConfig")
+
+' fuente: frontend/src/app/app.config.ts
+Rel(httpSetup, interceptor, "withInterceptors")
+' fuente: frontend/src/app/core/auth/auth.interceptor.ts
+Rel(interceptor, authSvc, "token y logout")
+' fuente: frontend/src/app/core/auth/auth.service.ts
+Rel(authSvc, kc, "POST token, grant_type=password, client piedrazul-web")
+' fuente: frontend/src/app/core/auth/auth.service.ts
+Rel(authSvc, api, "GET /auth/me y POST /auth/register")
+' fuente: frontend/src/app/core/services/appointment/service.ts
+Rel(appointmentSvc, api, "/appointments y /patients/suggest")
+' fuente: frontend/src/app/core/services/availability/service.ts
+Rel(availabilitySvc, api, "/doctors, /slots y /admin/.../scheduling-config")
+
+@enduml
