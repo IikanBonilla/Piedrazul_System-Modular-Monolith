@@ -26,8 +26,8 @@ describe('RegisterComponent', () => {
     expect(component.form.invalid).toBe(true);
     expect(component.form.controls.username.errors?.['message']).toContain('obligatorio');
     expect(component.form.controls.password.errors?.['message']).toContain('obligatorio');
-    httpMock.expectNone('http://localhost:8080/api/v1/auth/register');
-    httpMock.expectNone('http://localhost:8080/api/v1/patients/register');
+    httpMock.expectNone('/api/v1/auth/register');
+    httpMock.expectNone('/api/v1/patients/register');
   });
 
   it('should register a patient through the unified auth endpoint', () => {
@@ -48,7 +48,7 @@ describe('RegisterComponent', () => {
 
     component.submit();
 
-    const req = httpMock.expectOne('http://localhost:8080/api/v1/auth/register');
+    const req = httpMock.expectOne('/api/v1/auth/register');
     expect(req.request.method).toBe('POST');
     expect(req.request.body.role).toBe('PATIENT');
     expect(req.request.body.username).toBe('ana.ruiz');

@@ -16,7 +16,7 @@ describe('AppointmentListComponent', () => {
   });
 
   afterEach(() => {
-    httpMock.match('http://localhost:8080/api/v1/doctors').forEach((req) => req.flush([]));
+    httpMock.match('/api/v1/doctors').forEach((req) => req.flush([]));
     httpMock.verify();
   });
 
@@ -63,7 +63,7 @@ describe('AppointmentListComponent', () => {
     try {
       component.exportCsv();
       const req = httpMock.expectOne(
-        'http://localhost:8080/api/v1/appointments/doctor/7/export?date=2026-10-31'
+        '/api/v1/appointments/doctor/7/export?date=2026-10-31'
       );
       expect(req.request.method).toBe('GET');
       expect(req.request.responseType).toBe('blob');
@@ -81,7 +81,7 @@ describe('AppointmentListComponent', () => {
 
     component.exportCsv();
     const req = httpMock.expectOne(
-      'http://localhost:8080/api/v1/appointments/doctor/99/export?date=2026-10-31'
+      '/api/v1/appointments/doctor/99/export?date=2026-10-31'
     );
     req.flush(
       new Blob([JSON.stringify({ message: 'No existe el médico o terapista seleccionado.' })], {
