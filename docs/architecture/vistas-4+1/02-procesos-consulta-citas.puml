@@ -1,0 +1,69 @@
+@startuml consulta-citas
+title Proceso - consulta de citas por medico y fecha
+
+' fuente: keycloak/import/piedrazul-realm.json
+actor Agendador
+' fuente: frontend/src/app/pages/scheduler/appointment-list/component.ts
+participant "AppointmentListComponent" as Page
+' fuente: frontend/src/app/core/services/appointment/service.ts
+participant "AppointmentService" as Svc
+' fuente: frontend/src/app/core/auth/auth.interceptor.ts
+participant "authInterceptor" as Http
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+participant "SecurityConfig" as Sec
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AppointmentSearchController.java
+participant "AppointmentSearchController" as Api
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/SearchAppointmentsByDoctorAndDateUseCase.java
+participant "SearchAppointmentsByDoctorAndDateUseCase" as Uc
+' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/infrastructure/adapter/DoctorQueryAdapter.java
+participant "DoctorQueryPort\nDoctorQueryAdapter" as Doctors
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/infrastructure/persistence/AppointmentRepositoryAdapter.java
+participant "AppointmentRepositoryPort\nAppointmentRepositoryAdapter" as Appts
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/mapper/AppointmentAssembler.java
+participant "AppointmentAssembler" as Asm
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/enricher/DefaultAppointmentResponseEnricher.java
+participant "DefaultAppointmentResponseEnricher" as Enr
+
+' fuente: frontend/src/app/pages/scheduler/appointment-list/component.ts
+Agendador -> Page : search()
+alt medico o fecha invalidos
+  ' fuente: frontend/src/app/pages/scheduler/appointment-list/component.ts
+  Page --> Agendador : doctorError o dateError\ny no llama a la API
+else filtros validos
+  ' fuente: frontend/src/app/core/services/appointment/service.ts
+  Page -> Svc : getAppointmentsByDoctorAndDate(doctorId, date)
+  ' fuente: frontend/src/app/core/services/appointment/service.ts
+  Svc -> Http : GET /api/v1/appointments/doctor/{doctorId}?date=
+  ' fuente: frontend/src/app/core/auth/auth.interceptor.ts
+  Http -> Sec : Authorization Bearer si AuthService.token() existe
+  ' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+  Sec -> Sec : hasAnyRole SCHEDULER, DOCTOR\ny KeycloakRealmRoleConverter
+  ' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AppointmentSearchController.java
+  Sec -> Api : searchByDoctorAndDate
+  ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/SearchAppointmentsByDoctorAndDateUseCase.java
+  Api -> Uc : execute(doctorId, date)
+  ' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/infrastructure/adapter/DoctorQueryAdapter.java
+  Uc -> Doctors : findById(doctorId)
+  ' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/infrastructure/adapter/DoctorQueryAdapter.java
+  Doctors -> Doctors : DoctorRepository.findById
+  ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/infrastructure/persistence/AppointmentRepositoryAdapter.java
+  Uc -> Appts : findByDoctorAndDateRange(inicio del dia, 23:59:59)
+  ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/infrastructure/persistence/AppointmentJpaRepository.java
+  Appts -> Appts : AppointmentJpaRepository.findByDoctorIdAndAppointmentDateBetween
+  loop cada cita ordenada por appointmentDate
+    ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/mapper/AppointmentAssembler.java
+    Uc -> Asm : toResponse
+    ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/enricher/DefaultAppointmentResponseEnricher.java
+    Asm -> Enr : enrich
+    ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/enricher/DefaultAppointmentResponseEnricher.java
+    Enr -> Enr : UserQueryPort.findById y DoctorQueryPort.findById
+  end
+  ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/SearchAppointmentsByDoctorAndDateUseCase.java
+  Uc --> Api : AppointmentSearchResultDTO\ndoctorName, date, total, appointments
+  ' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AppointmentSearchController.java
+  Api --> Page : 200
+  ' fuente: frontend/src/app/pages/scheduler/appointment-list/component.html
+  Page --> Agendador : tabla y badge Total
+end
+
+@enduml

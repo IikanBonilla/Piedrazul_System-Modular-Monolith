@@ -95,5 +95,14 @@ class SearchAppointmentsByDoctorAndDateUseCaseTest {
         assertThrows(AppointmentSearchException.class, () -> useCase.execute(null, LocalDate.now()));
     }
 
-    // TODO (tu turno): agrega prueba para DOCTOR_NOT_FOUND (HU-1.1 escenario medico inexistente)
+    @Test
+    void shouldThrowWhenDoctorDoesNotExist() {
+        when(doctorQueryPort.findById(99L)).thenReturn(Optional.empty());
+
+        AppointmentSearchException ex = assertThrows(AppointmentSearchException.class,
+                () -> useCase.execute(99L, LocalDate.of(2026, 9, 2)));
+
+        assertEquals("DOCTOR_NOT_FOUND", ex.getCode());
+        verify(appointmentRepository, never()).findByDoctorAndDateRange(any(), any(), any());
+    }
 }

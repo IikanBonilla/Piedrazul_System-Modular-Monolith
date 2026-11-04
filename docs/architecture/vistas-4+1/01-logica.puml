@@ -1,0 +1,280 @@
+@startuml logica
+title Vista logica - dominio y casos de uso
+
+' fuente: backend/modules/shared-kernel/pom.xml
+package "shared-kernel" {
+  ' fuente: backend/modules/shared-kernel/src/main/java/com/groupsoft/piedrazul/shared/exception/DomainException.java
+  class DomainException {
+    code: String
+  }
+  ' fuente: backend/modules/shared-kernel/src/main/java/com/groupsoft/piedrazul/shared/dto/DoctorSummary.java
+  class DoctorSummary <<record>> {
+    id: Long
+    fullName: String
+    specialty: String
+  }
+  ' fuente: backend/modules/shared-kernel/src/main/java/com/groupsoft/piedrazul/shared/dto/UserSummary.java
+  class UserSummary <<record>> {
+    id: Long
+    fullName: String
+    documentNumber: String
+    phone: String
+  }
+  ' fuente: backend/modules/shared-kernel/src/main/java/com/groupsoft/piedrazul/shared/port/DoctorQueryPort.java
+  interface DoctorQueryPort {
+    existsById(doctorId): boolean
+    findById(doctorId): Optional<DoctorSummary>
+  }
+  ' fuente: backend/modules/shared-kernel/src/main/java/com/groupsoft/piedrazul/shared/port/DoctorSchedulePort.java
+  interface DoctorSchedulePort {
+    candidateSlots(doctorId, date): List<LocalDateTime>
+    isDateWithinBookingWindow(doctorId, date): boolean
+  }
+  ' fuente: backend/modules/shared-kernel/src/main/java/com/groupsoft/piedrazul/shared/port/UserQueryPort.java
+  interface UserQueryPort {
+    findById(userId): Optional<UserSummary>
+    findByDocumentNumber(documentNumber): Optional<UserSummary>
+  }
+}
+
+' fuente: backend/modules/user/pom.xml
+package "user" {
+  ' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/domain/model/User.java
+  class "User\napp_users" as User <<Entity>> {
+    id: Long
+    username: String
+    password: String
+    fullName: String
+    email: String
+    documentNumber: String
+    phone: String
+    birthDate: LocalDate
+    role: Role
+    active: boolean
+    doctorId: Long
+  }
+  ' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/domain/model/Role.java
+  enum Role {
+    SCHEDULER
+    PATIENT
+    DOCTOR
+    ADMINISTRATOR
+  }
+  ' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/domain/repository/UserRepository.java
+  interface UserRepository {
+    findByUsernameIgnoreCase()
+    findByEmailIgnoreCase()
+    findByDocumentNumber()
+    findTop8ByRoleAndActiveTrueAndDocumentNumberStartingWithOrderByDocumentNumberAsc()
+  }
+  ' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/application/port/IdentityProvisioner.java
+  interface IdentityProvisioner {
+    provision()
+    rollback()
+  }
+  ' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/application/usecase/RegisterUserUseCase.java
+  class RegisterUserUseCase {
+    execute(request): User
+  }
+  ' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/application/usecase/SuggestPatientsByDocumentUseCase.java
+  class SuggestPatientsByDocumentUseCase {
+    MIN_PREFIX_LENGTH = 3
+    execute(documentPrefix): List
+  }
+  ' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/application/exception/AuthException.java
+  class AuthException {
+  }
+  ' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/application/exception/RegistrationException.java
+  class RegistrationException {
+  }
+}
+
+' fuente: backend/modules/availability/pom.xml
+package "availability" {
+  ' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/domain/model/Doctor.java
+  class "Doctor\ndoctors" as Doctor <<Entity>> {
+    id: Long
+    fullName: String
+    specialty: String
+    active: boolean
+  }
+  ' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/domain/model/DoctorSchedulingConfig.java
+  class "DoctorSchedulingConfig\ndoctor_scheduling_configs" as DoctorSchedulingConfig <<Entity>> {
+    id: Long
+    doctorId: Long
+    bookingWindowWeeks: int
+    slotIntervalMinutes: int
+    workingDays: Set<DayOfWeek>
+    timeSlots: List<TimeRange>
+    defaultFor(doctorId)
+  }
+  ' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/domain/model/TimeRange.java
+  class TimeRange <<Embeddable>> {
+    startTime: LocalTime
+    endTime: LocalTime
+  }
+  ' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/domain/model/DoctorWorkingHours.java
+  class DoctorWorkingHours {
+    slotsFor(date, config)
+    isWithinBookingWindow(date, config, today)
+  }
+  ' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/domain/repository/DoctorRepository.java
+  interface DoctorRepository {
+  }
+  ' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/domain/repository/DoctorSchedulingConfigRepository.java
+  interface DoctorSchedulingConfigRepository {
+    findByDoctorId(doctorId)
+  }
+  ' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/application/usecase/ConfigureDoctorSchedulingUseCase.java
+  class ConfigureDoctorSchedulingUseCase {
+    execute(doctorId, request)
+  }
+  ' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/application/usecase/GetDoctorSchedulingConfigUseCase.java
+  class GetDoctorSchedulingConfigUseCase {
+    execute(doctorId)
+  }
+  ' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/application/exception/InvalidSchedulingConfigException.java
+  class InvalidSchedulingConfigException {
+  }
+}
+
+' fuente: backend/modules/appointment/pom.xml
+package "appointment" {
+  ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/domain/model/Appointment.java
+  class "Appointment\nappointments" as Appointment <<Entity>> {
+    id: Long
+    patientId: Long
+    doctorId: Long
+    appointmentDate: LocalDateTime
+    status: AppointmentStatus
+    whatsappNumber: String
+    notes: String
+  }
+  ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/domain/model/AppointmentStatus.java
+  enum AppointmentStatus {
+    PENDING
+    CONFIRMED
+    CANCELLED
+    COMPLETED
+    RESCHEDULED
+  }
+  ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/domain/port/AppointmentRepositoryPort.java
+  interface AppointmentRepositoryPort {
+    findByDoctorAndDateRange()
+    findByPatientId()
+    existsActiveByDoctorAndDateTime()
+    save()
+  }
+  ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/SearchAppointmentsByDoctorAndDateUseCase.java
+  class SearchAppointmentsByDoctorAndDateUseCase {
+    execute(doctorId, date)
+  }
+  ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/ScheduleAppointmentUseCase.java
+  class ScheduleAppointmentUseCase {
+    execute(request)
+  }
+  ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/QueryAvailableSlotsUseCase.java
+  class QueryAvailableSlotsUseCase {
+    execute(doctorId, date)
+  }
+  ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/ExportAppointmentsCsvUseCase.java
+  class ExportAppointmentsCsvUseCase {
+    execute(doctorId, date): byte[]
+  }
+  ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/SearchAppointmentsByPatientDocumentUseCase.java
+  class SearchAppointmentsByPatientDocumentUseCase {
+    execute(documentNumber)
+  }
+  ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/export/AppointmentCsvWriter.java
+  class AppointmentCsvWriter {
+    write(result): byte[]
+  }
+  ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/exception/AppointmentSearchException.java
+  class AppointmentSearchException {
+  }
+  ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/exception/AppointmentSchedulingException.java
+  class AppointmentSchedulingException {
+  }
+}
+
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/domain/model/User.java
+User --> Role
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/domain/model/Appointment.java
+Appointment --> AppointmentStatus
+' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/domain/model/DoctorSchedulingConfig.java
+DoctorSchedulingConfig *-- TimeRange
+' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/domain/model/DoctorWorkingHours.java
+DoctorWorkingHours ..> DoctorSchedulingConfig : slotsFor
+
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/application/exception/AuthException.java
+AuthException --|> DomainException
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/application/exception/RegistrationException.java
+RegistrationException --|> DomainException
+' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/application/exception/InvalidSchedulingConfigException.java
+InvalidSchedulingConfigException --|> DomainException
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/exception/AppointmentSearchException.java
+AppointmentSearchException --|> DomainException
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/exception/AppointmentSchedulingException.java
+AppointmentSchedulingException --|> DomainException
+
+' fuente: backend/modules/shared-kernel/src/main/java/com/groupsoft/piedrazul/shared/port/UserQueryPort.java
+UserQueryPort ..> UserSummary
+' fuente: backend/modules/shared-kernel/src/main/java/com/groupsoft/piedrazul/shared/port/DoctorQueryPort.java
+DoctorQueryPort ..> DoctorSummary
+
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/application/usecase/RegisterUserUseCase.java
+RegisterUserUseCase --> UserRepository
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/application/usecase/RegisterUserUseCase.java
+RegisterUserUseCase --> IdentityProvisioner
+' fuente: backend/modules/user/src/main/java/com/groupsoft/piedrazul/user/application/usecase/SuggestPatientsByDocumentUseCase.java
+SuggestPatientsByDocumentUseCase --> UserRepository
+' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/application/usecase/ConfigureDoctorSchedulingUseCase.java
+ConfigureDoctorSchedulingUseCase --> DoctorRepository
+' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/application/usecase/ConfigureDoctorSchedulingUseCase.java
+ConfigureDoctorSchedulingUseCase --> DoctorSchedulingConfigRepository
+' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/application/usecase/GetDoctorSchedulingConfigUseCase.java
+GetDoctorSchedulingConfigUseCase --> DoctorRepository
+' fuente: backend/modules/availability/src/main/java/com/groupsoft/piedrazul/availability/application/usecase/GetDoctorSchedulingConfigUseCase.java
+GetDoctorSchedulingConfigUseCase --> DoctorSchedulingConfigRepository
+
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/SearchAppointmentsByDoctorAndDateUseCase.java
+SearchAppointmentsByDoctorAndDateUseCase --> AppointmentRepositoryPort
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/SearchAppointmentsByDoctorAndDateUseCase.java
+SearchAppointmentsByDoctorAndDateUseCase --> DoctorQueryPort
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/ScheduleAppointmentUseCase.java
+ScheduleAppointmentUseCase --> AppointmentRepositoryPort
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/ScheduleAppointmentUseCase.java
+ScheduleAppointmentUseCase --> DoctorQueryPort
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/ScheduleAppointmentUseCase.java
+ScheduleAppointmentUseCase --> DoctorSchedulePort
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/ScheduleAppointmentUseCase.java
+ScheduleAppointmentUseCase --> UserQueryPort
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/QueryAvailableSlotsUseCase.java
+QueryAvailableSlotsUseCase --> AppointmentRepositoryPort
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/QueryAvailableSlotsUseCase.java
+QueryAvailableSlotsUseCase --> DoctorQueryPort
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/QueryAvailableSlotsUseCase.java
+QueryAvailableSlotsUseCase --> DoctorSchedulePort
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/ExportAppointmentsCsvUseCase.java
+ExportAppointmentsCsvUseCase --> SearchAppointmentsByDoctorAndDateUseCase
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/ExportAppointmentsCsvUseCase.java
+ExportAppointmentsCsvUseCase --> AppointmentCsvWriter
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/SearchAppointmentsByPatientDocumentUseCase.java
+SearchAppointmentsByPatientDocumentUseCase --> AppointmentRepositoryPort
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/SearchAppointmentsByPatientDocumentUseCase.java
+SearchAppointmentsByPatientDocumentUseCase --> UserQueryPort
+
+note bottom of Appointment
+  patientId y doctorId son Long.
+  No hay asociacion JPA hacia User ni Doctor.
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/domain/model/Appointment.java
+end note
+
+note bottom of AppointmentRepositoryPort
+  existsActiveByDoctorAndDateTime esta en el puerto
+  y en AppointmentRepositoryAdapter.
+  Ningun caso de uso lo llama.
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/domain/port/AppointmentRepositoryPort.java
+end note
+
+@enduml

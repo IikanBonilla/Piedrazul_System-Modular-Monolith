@@ -1,0 +1,55 @@
+@startuml exportar-csv
+title Proceso - exportar la jornada a CSV
+
+' fuente: keycloak/import/piedrazul-realm.json
+actor Agendador
+' fuente: frontend/src/app/pages/scheduler/appointment-list/component.ts
+participant "AppointmentListComponent" as Page
+' fuente: frontend/src/app/core/services/appointment/service.ts
+participant "AppointmentService" as Svc
+' fuente: frontend/src/app/core/auth/auth.interceptor.ts
+participant "authInterceptor" as Http
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+participant "SecurityConfig" as Sec
+' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AppointmentSearchController.java
+participant "AppointmentSearchController" as Api
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/ExportAppointmentsCsvUseCase.java
+participant "ExportAppointmentsCsvUseCase" as Exp
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/SearchAppointmentsByDoctorAndDateUseCase.java
+participant "SearchAppointmentsByDoctorAndDateUseCase" as Search
+' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/export/AppointmentCsvWriter.java
+participant "AppointmentCsvWriter" as Csv
+
+' fuente: frontend/src/app/pages/scheduler/appointment-list/component.ts
+Agendador -> Page : exportCsv()
+alt sin medico o con fecha invalida
+  ' fuente: frontend/src/app/pages/scheduler/appointment-list/component.ts
+  Page --> Agendador : doctorError o dateError\nno llama a /export
+else filtros validos
+  ' fuente: frontend/src/app/core/services/appointment/service.ts
+  Page -> Svc : exportAppointments(doctorId, date)
+  ' fuente: frontend/src/app/core/services/appointment/service.ts
+  Svc -> Http : GET /appointments/doctor/{doctorId}/export?date=\nresponseType blob
+  ' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/security/SecurityConfig.java
+  Http -> Sec : Bearer. hasAnyRole SCHEDULER, DOCTOR\nla ruta cubre /appointments/doctor/**
+  ' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AppointmentSearchController.java
+  Sec -> Api : exportByDoctorAndDate
+  ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/ExportAppointmentsCsvUseCase.java
+  Api -> Exp : execute(doctorId, date)
+  ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/ExportAppointmentsCsvUseCase.java
+  Exp -> Search : execute(doctorId, date)
+  ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/SearchAppointmentsByDoctorAndDateUseCase.java
+  Search --> Exp : AppointmentSearchResultDTO
+  ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/export/AppointmentCsvWriter.java
+  Exp -> Csv : write(result)
+  ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/export/AppointmentCsvWriter.java
+  Csv --> Exp : bytes UTF-8 con BOM\nseparador ;
+  ' fuente: backend/modules/appointment/src/main/java/com/groupsoft/piedrazul/appointment/application/usecase/ExportAppointmentsCsvUseCase.java
+  Exp --> Api : byte[]
+  ' fuente: backend/piedrazul-app/src/main/java/com/groupsoft/piedrazul/infrastructure/web/AppointmentSearchController.java
+  Api --> Page : 200 text/csv\nContent-Disposition citas-{doctorId}-{date}.csv
+  ' fuente: frontend/src/app/pages/scheduler/appointment-list/component.ts
+  Page -> Page : downloadCsv\nanchor.download = citas-{doctorId}-{date}.csv
+end
+
+@enduml

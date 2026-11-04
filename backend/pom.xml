@@ -17,6 +17,7 @@
 
     <properties>
         <lombok.version>1.18.42</lombok.version>
+        <byte-buddy.version>1.17.8</byte-buddy.version>
     </properties>
 
     <dependencyManagement>
