@@ -15,7 +15,7 @@ describe('SchedulingConfigComponent', () => {
   });
 
   afterEach(() => {
-    httpMock.match('http://localhost:8080/api/v1/doctors').forEach((req) => req.flush([]));
+    httpMock.match('/api/v1/doctors').forEach((req) => req.flush([]));
     httpMock.verify();
   });
 

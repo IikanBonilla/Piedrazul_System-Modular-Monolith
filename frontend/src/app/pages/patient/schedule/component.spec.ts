@@ -15,7 +15,7 @@ describe('PatientScheduleComponent', () => {
   });
 
   afterEach(() => {
-    const doctors = httpMock.match('http://localhost:8080/api/v1/doctors');
+    const doctors = httpMock.match('/api/v1/doctors');
     doctors.forEach((req) => req.flush([]));
     httpMock.verify();
   });
@@ -44,6 +44,6 @@ describe('PatientScheduleComponent', () => {
     component.requestSchedule();
 
     expect(component.showConfirmModal).toBe(true);
-    httpMock.expectNone('http://localhost:8080/api/v1/appointments');
+    httpMock.expectNone('/api/v1/appointments');
   });
 });

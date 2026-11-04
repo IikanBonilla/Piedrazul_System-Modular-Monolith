@@ -1,4 +1,5 @@
-export const KEYCLOAK_BASE_URL = 'http://localhost:8081';
+// El navegador pide el token al mismo origen. ng serve lo reenvía a Keycloak.
+export const KEYCLOAK_BASE_URL = '';
 export const KEYCLOAK_REALM = 'piedrazul';
 export const KEYCLOAK_CLIENT_ID = 'piedrazul-web';
 
