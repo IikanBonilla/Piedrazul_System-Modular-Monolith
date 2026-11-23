@@ -7,6 +7,11 @@ export const PATIENT_ROUTES: Routes = [
       import('./home/component').then((m) => m.PatientHomeComponent)
   },
   {
+    path: 'citas',
+    loadComponent: () =>
+      import('./appointments/component').then((m) => m.PatientAppointmentsComponent)
+  },
+  {
     path: 'agendar',
     loadComponent: () =>
       import('./schedule/component').then((m) => m.PatientScheduleComponent)

@@ -14,6 +14,7 @@ export interface AppointmentResponseDTO {
   status: string;
   whatsappNumber: string;
   notes: string;
+  cancellationReason?: string;
 }
 
 export interface AppointmentSearchResultDTO {
@@ -30,6 +31,20 @@ export interface PatientAppointmentHistoryDTO {
   patientDocument: string;
   total: number;
   appointments: AppointmentResponseDTO[];
+}
+
+export interface DoctorYearCountDTO {
+  doctorId: number;
+  doctorName: string;
+  counts: number[];
+  total: number;
+}
+
+export interface AppointmentYearReportDTO {
+  year: number;
+  total: number;
+  months: string[];
+  doctors: DoctorYearCountDTO[];
 }
 
 export interface PatientSuggestionDTO {
@@ -92,6 +107,23 @@ export class AppointmentService {
       `${API_BASE_URL}/appointments/patient`,
       { params: { document: documentNumber } }
     );
+  }
+
+  getMyAppointments(): Observable<PatientAppointmentHistoryDTO> {
+    return this.http.get<PatientAppointmentHistoryDTO>(`${API_BASE_URL}/appointments/mine`);
+  }
+
+  cancelAppointment(id: number, justification: string): Observable<{ id: number; status: string; message: string }> {
+    return this.http.post<{ id: number; status: string; message: string }>(
+      `${API_BASE_URL}/appointments/${id}/cancel`,
+      { justification }
+    );
+  }
+
+  getAppointmentYearReport(year: number): Observable<AppointmentYearReportDTO> {
+    return this.http.get<AppointmentYearReportDTO>(`${API_BASE_URL}/appointments/report`, {
+      params: { year }
+    });
   }
 
   suggestPatients(documentPrefix: string): Observable<PatientSuggestionDTO[]> {

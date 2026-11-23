@@ -112,6 +112,25 @@ class QueryAvailableSlotsUseCaseTest {
     }
 
     @Test
+    void cancelledAppointmentDoesNotKeepTheSlotOccupied() {
+        LocalDate date = LocalDate.of(2026, 9, 21);
+        stubDoctor();
+        when(doctorSchedulePort.isDateWithinBookingWindow(1L, date)).thenReturn(true);
+        when(doctorSchedulePort.candidateSlots(1L, date)).thenReturn(List.of(date.atTime(9, 0)));
+        when(appointmentRepository.findByDoctorAndDateRange(eq(1L), any(), any()))
+                .thenReturn(List.of(Appointment.builder()
+                        .doctorId(1L)
+                        .appointmentDate(date.atTime(9, 0))
+                        .status(AppointmentStatus.CANCELLED)
+                        .build()));
+
+        var result = useCase.execute(1L, date);
+
+        assertEquals(1, result.getTotal());
+        assertEquals(date.atTime(9, 0), result.getSlots().get(0).getStart());
+    }
+
+    @Test
     void shouldThrowWhenDoctorOrDateIsMissing() {
         assertEquals("MISSING_DOCTOR",
                 assertThrows(AppointmentSchedulingException.class, () -> useCase.execute(null, LocalDate.now())).getCode());

@@ -35,6 +35,9 @@
             <a class="nav-link" routerLink="/paciente" routerLinkActive="active-link" [routerLinkActiveOptions]="{ exact: true }" (click)="menuOpen = false">
               Mi cuenta
             </a>
+            <a class="nav-link" routerLink="/paciente/citas" routerLinkActive="active-link" (click)="menuOpen = false">
+              Mis citas
+            </a>
             <a class="nav-link" routerLink="/paciente/agendar" routerLinkActive="active-link" (click)="menuOpen = false">
               Agendar cita
             </a>
@@ -53,6 +56,9 @@
             </a>
             <a class="nav-link" routerLink="/medico/citas" routerLinkActive="active-link" (click)="menuOpen = false">
               Citas del día
+            </a>
+            <a class="nav-link" routerLink="/medico/reporte" routerLinkActive="active-link" (click)="menuOpen = false">
+              Reporte
             </a>
             <a class="nav-link" routerLink="/medico/historial" routerLinkActive="active-link" (click)="menuOpen = false">
               Historial

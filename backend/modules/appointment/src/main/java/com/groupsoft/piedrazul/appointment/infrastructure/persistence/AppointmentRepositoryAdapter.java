@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Repository
@@ -26,6 +27,17 @@ public class AppointmentRepositoryAdapter implements AppointmentRepositoryPort {
     @Override
     public List<Appointment> findByPatientId(Long patientId) {
         return jpaRepository.findByPatientIdOrderByAppointmentDateDesc(patientId);
+    }
+
+    @Override
+    public Optional<Appointment> findById(Long appointmentId) {
+        return jpaRepository.findById(appointmentId);
+    }
+
+    @Override
+    public List<Appointment> findByDateRange(LocalDateTime startInclusive, LocalDateTime endExclusive) {
+        return jpaRepository.findByAppointmentDateGreaterThanEqualAndAppointmentDateLessThan(
+                startInclusive, endExclusive);
     }
 
     @Override

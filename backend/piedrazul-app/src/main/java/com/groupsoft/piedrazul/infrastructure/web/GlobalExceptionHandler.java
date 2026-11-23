@@ -102,9 +102,10 @@ public class GlobalExceptionHandler implements AuthenticationEntryPoint, AccessD
                  "MISSING_DOCUMENT", "INVALID_DOCUMENT",
                  "INCOMPLETE_REGISTRATION", "CONFIRMATION_REQUIRED",
                  "INVALID_BOOKING_WINDOW", "NO_WORKING_DAYS",
-                 "INVALID_TIME_RANGE", "INVALID_SLOT_INTERVAL", "INVALID_NOTES" -> HttpStatus.BAD_REQUEST;
-            case "PATIENT_MISMATCH" -> HttpStatus.FORBIDDEN;
-            case "DOCTOR_NOT_FOUND", "PATIENT_NOT_FOUND" -> HttpStatus.NOT_FOUND;
+                 "INVALID_TIME_RANGE", "INVALID_SLOT_INTERVAL", "INVALID_NOTES",
+                 "MISSING_JUSTIFICATION", "INVALID_JUSTIFICATION", "INVALID_YEAR" -> HttpStatus.BAD_REQUEST;
+            case "PATIENT_MISMATCH", "APPOINTMENT_FORBIDDEN" -> HttpStatus.FORBIDDEN;
+            case "DOCTOR_NOT_FOUND", "PATIENT_NOT_FOUND", "APPOINTMENT_NOT_FOUND" -> HttpStatus.NOT_FOUND;
             case "USER_ALREADY_EXISTS" -> HttpStatus.CONFLICT;
             default -> HttpStatus.UNPROCESSABLE_ENTITY;
         };

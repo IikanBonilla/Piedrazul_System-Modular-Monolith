@@ -1,7 +1,15 @@
 package com.groupsoft.piedrazul.infrastructure.web;
 
+import com.groupsoft.piedrazul.appointment.application.dto.AppointmentYearReportDTO;
+import com.groupsoft.piedrazul.appointment.application.dto.CancelAppointmentRequest;
+import com.groupsoft.piedrazul.appointment.application.dto.CancelAppointmentResultDTO;
+import com.groupsoft.piedrazul.appointment.application.dto.PatientAppointmentHistoryDTO;
 import com.groupsoft.piedrazul.appointment.application.dto.ScheduleAppointmentConfirmationDTO;
 import com.groupsoft.piedrazul.appointment.application.dto.ScheduleAppointmentRequest;
+import com.groupsoft.piedrazul.appointment.application.exception.AppointmentSchedulingException;
+import com.groupsoft.piedrazul.appointment.application.usecase.CancelAppointmentUseCase;
+import com.groupsoft.piedrazul.appointment.application.usecase.GenerateAppointmentYearReportUseCase;
+import com.groupsoft.piedrazul.appointment.application.usecase.ListMyAppointmentsUseCase;
 import com.groupsoft.piedrazul.appointment.application.usecase.ScheduleAppointmentUseCase;
 import com.groupsoft.piedrazul.infrastructure.security.CurrentSessionService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,10 +19,15 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/v1/appointments")
@@ -23,6 +36,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class AppointmentSchedulingController {
 
     private final ScheduleAppointmentUseCase scheduleAppointmentUseCase;
+    private final CancelAppointmentUseCase cancelAppointmentUseCase;
+    private final ListMyAppointmentsUseCase listMyAppointmentsUseCase;
+    private final GenerateAppointmentYearReportUseCase generateAppointmentYearReportUseCase;
     private final CurrentSessionService currentSessionService;
 
     @PostMapping
@@ -33,5 +49,33 @@ public class AppointmentSchedulingController {
         Long patientId = currentSessionService.profile(jwt).id();
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(scheduleAppointmentUseCase.execute(patientId, request));
+    }
+
+    @GetMapping("/report")
+    @Operation(summary = "Reporte anual de citas por mes y por médico")
+    public AppointmentYearReportDTO report(@RequestParam(required = false) Integer year) {
+        if (year == null) {
+            throw AppointmentSchedulingException.invalidYear();
+        }
+        return generateAppointmentYearReportUseCase.execute(year);
+    }
+
+    @GetMapping("/mine")
+    @Operation(summary = "Citas del paciente autenticado")
+    public PatientAppointmentHistoryDTO mine(@AuthenticationPrincipal Jwt jwt) {
+        Long patientId = currentSessionService.profile(jwt).id();
+        return listMyAppointmentsUseCase.execute(patientId);
+    }
+
+    @PostMapping("/{id}/cancel")
+    @Operation(summary = "Cancelar una cita propia con al menos dos días de anticipación")
+    public CancelAppointmentResultDTO cancel(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long id,
+            @RequestBody(required = false) CancelAppointmentRequest request
+    ) {
+        Long patientId = currentSessionService.profile(jwt).id();
+        String justification = request == null ? null : request.justification();
+        return cancelAppointmentUseCase.execute(patientId, id, justification, LocalDateTime.now());
     }
 }

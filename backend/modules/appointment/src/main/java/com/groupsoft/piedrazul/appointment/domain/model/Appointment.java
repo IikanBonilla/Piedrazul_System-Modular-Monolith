@@ -36,4 +36,7 @@ public class Appointment {
 
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
+
+    @Column(name = "cancellation_reason", length = 300)
+    private String cancellationReason;
 }

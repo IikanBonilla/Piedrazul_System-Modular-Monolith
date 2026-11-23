@@ -78,6 +78,55 @@ public class AppointmentSchedulingException extends DomainException {
         );
     }
 
+    public static AppointmentSchedulingException missingJustification() {
+        return new AppointmentSchedulingException(
+                "MISSING_JUSTIFICATION",
+                "La justificación es obligatoria."
+        );
+    }
+
+    public static AppointmentSchedulingException invalidJustification() {
+        return new AppointmentSchedulingException(
+                "INVALID_JUSTIFICATION",
+                "La justificación debe tener entre 10 y 300 caracteres."
+        );
+    }
+
+    public static AppointmentSchedulingException appointmentNotFound() {
+        return new AppointmentSchedulingException(
+                "APPOINTMENT_NOT_FOUND",
+                "No existe la cita que intentas cancelar."
+        );
+    }
+
+    public static AppointmentSchedulingException notOwner() {
+        return new AppointmentSchedulingException(
+                "APPOINTMENT_FORBIDDEN",
+                "Solo puedes cancelar citas que tú agendaste."
+        );
+    }
+
+    public static AppointmentSchedulingException notCancellable() {
+        return new AppointmentSchedulingException(
+                "APPOINTMENT_NOT_CANCELLABLE",
+                "Esta cita ya no se puede cancelar."
+        );
+    }
+
+    public static AppointmentSchedulingException invalidYear() {
+        return new AppointmentSchedulingException(
+                "INVALID_YEAR",
+                "Elige un año entre 2000 y 2100."
+        );
+    }
+
+    public static AppointmentSchedulingException tooLateToCancel() {
+        return new AppointmentSchedulingException(
+                "CANCELLATION_TOO_LATE",
+                "Solo puedes cancelar una cita con al menos dos días de anticipación."
+        );
+    }
+
     public static AppointmentSchedulingException noAvailableSlots() {
         return new AppointmentSchedulingException(
                 "NO_AVAILABLE_SLOTS",

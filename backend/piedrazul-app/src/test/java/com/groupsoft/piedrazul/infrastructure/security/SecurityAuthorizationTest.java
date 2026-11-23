@@ -1,7 +1,10 @@
 package com.groupsoft.piedrazul.infrastructure.security;
 
 import com.groupsoft.piedrazul.appointment.application.exception.AppointmentSchedulingException;
+import com.groupsoft.piedrazul.appointment.application.usecase.CancelAppointmentUseCase;
 import com.groupsoft.piedrazul.appointment.application.usecase.ExportAppointmentsCsvUseCase;
+import com.groupsoft.piedrazul.appointment.application.usecase.GenerateAppointmentYearReportUseCase;
+import com.groupsoft.piedrazul.appointment.application.usecase.ListMyAppointmentsUseCase;
 import com.groupsoft.piedrazul.appointment.application.usecase.QueryAvailableSlotsUseCase;
 import com.groupsoft.piedrazul.appointment.application.usecase.ScheduleAppointmentUseCase;
 import com.groupsoft.piedrazul.appointment.application.usecase.SearchAppointmentsByDoctorAndDateUseCase;
@@ -67,6 +70,15 @@ class SecurityAuthorizationTest {
     private ScheduleAppointmentUseCase scheduleAppointmentUseCase;
 
     @MockBean
+    private CancelAppointmentUseCase cancelAppointmentUseCase;
+
+    @MockBean
+    private ListMyAppointmentsUseCase listMyAppointmentsUseCase;
+
+    @MockBean
+    private GenerateAppointmentYearReportUseCase generateAppointmentYearReportUseCase;
+
+    @MockBean
     private QueryAvailableSlotsUseCase queryAvailableSlotsUseCase;
 
     @MockBean
@@ -125,6 +137,36 @@ class SecurityAuthorizationTest {
         mockMvc.perform(get("/api/v1/doctors/4/slots").header("Authorization", "Bearer patient"))
                 .andExpect(status().isOk());
         mockMvc.perform(post("/api/v1/appointments").header("Authorization", "Bearer scheduler"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void patientCanListAndCancelOwnAppointments() throws Exception {
+        when(jwtDecoder.decode("patient")).thenReturn(token("PATIENT"));
+        when(jwtDecoder.decode("doctor")).thenReturn(token("DOCTOR"));
+        when(currentSessionService.profile(any())).thenReturn(patientSession());
+
+        mockMvc.perform(get("/api/v1/appointments/mine").header("Authorization", "Bearer patient"))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/appointments/8/cancel")
+                        .header("Authorization", "Bearer patient")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"justification\":\"No puedo asistir a la consulta\"}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/appointments/8/cancel").header("Authorization", "Bearer doctor"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void doctorCanSeeTheYearReportAndPatientCannot() throws Exception {
+        when(jwtDecoder.decode("doctor")).thenReturn(token("DOCTOR"));
+        when(jwtDecoder.decode("patient")).thenReturn(token("PATIENT"));
+
+        mockMvc.perform(get("/api/v1/appointments/report").param("year", "2026")
+                        .header("Authorization", "Bearer doctor"))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/appointments/report").param("year", "2026")
+                        .header("Authorization", "Bearer patient"))
                 .andExpect(status().isForbidden());
     }
 

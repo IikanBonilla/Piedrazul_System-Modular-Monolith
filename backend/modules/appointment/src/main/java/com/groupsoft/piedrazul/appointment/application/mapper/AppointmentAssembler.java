@@ -21,6 +21,7 @@ public class AppointmentAssembler {
                 .status(appointment.getStatus())
                 .whatsappNumber(appointment.getWhatsappNumber())
                 .notes(appointment.getNotes())
+                .cancellationReason(appointment.getCancellationReason())
                 .build();
 
         return enricher.enrich(appointment, base);

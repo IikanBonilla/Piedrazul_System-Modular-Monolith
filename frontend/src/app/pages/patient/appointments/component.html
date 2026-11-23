@@ -1,0 +1,79 @@
+<section class="container page-wrap">
+  <header class="page-header">
+    <p class="eyebrow">Paciente</p>
+    <h1>Mis citas</h1>
+    <p>Puedes cancelar una cita propia si faltan al menos dos días y dejas la justificación.</p>
+  </header>
+
+  <div class="alert alert-danger" *ngIf="loadError" role="alert">{{ loadError }}</div>
+  <div class="alert alert-success" *ngIf="success" role="status">{{ success }}</div>
+
+  <div *ngIf="loading" class="text-center py-5" role="status">
+    <div class="spinner-border text-primary"></div>
+    <p class="mt-3 text-secondary">Cargando tus citas...</p>
+  </div>
+
+  <div class="card" *ngIf="!loading && !loadError">
+    <div class="card-body p-0">
+      <div class="empty-state" *ngIf="appointments.length === 0">
+        <p class="mb-0">Todavía no tienes citas registradas.</p>
+      </div>
+      <div class="table-responsive" *ngIf="appointments.length > 0">
+        <table class="table table-hover table-stack mb-0">
+          <thead>
+            <tr>
+              <th scope="col">Fecha y hora</th>
+              <th scope="col">Médico</th>
+              <th scope="col">Estado</th>
+              <th scope="col">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let appointment of appointments">
+              <td class="fw-semibold" data-label="Fecha y hora">{{ appointment.appointmentDate | date:'dd/MM/yyyy HH:mm' }}</td>
+              <td data-label="Médico">{{ appointment.doctorName || ('Médico ' + appointment.doctorId) }}</td>
+              <td data-label="Estado">{{ statusLabel(appointment.status) }}</td>
+              <td data-label="Acción">
+                <button
+                  *ngIf="canCancel(appointment)"
+                  class="btn btn-outline-danger btn-sm"
+                  type="button"
+                  (click)="startCancel(appointment)"
+                >
+                  Cancelar
+                </button>
+                <span *ngIf="!canCancel(appointment)" class="text-secondary">No disponible</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mt-4" *ngIf="selectedId !== null">
+    <div class="card-body">
+      <h2 class="h5">Justificación de la cancelación</h2>
+      <label class="form-label" for="justification">¿Por qué cancelas esta cita?</label>
+      <textarea
+        id="justification"
+        class="form-control"
+        rows="3"
+        maxlength="300"
+        [(ngModel)]="justification"
+        [class.is-invalid]="formError"
+        [attr.aria-invalid]="formError ? true : null"
+        aria-describedby="justification-error"
+      ></textarea>
+      <p class="field-error" id="justification-error" *ngIf="formError">{{ formError }}</p>
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        <button class="btn btn-danger" type="button" (click)="confirmCancel()" [disabled]="cancelling">
+          {{ cancelling ? 'Cancelando...' : 'Confirmar cancelación' }}
+        </button>
+        <button class="btn btn-outline-secondary" type="button" (click)="closeCancel()" [disabled]="cancelling">
+          Volver
+        </button>
+      </div>
+    </div>
+  </div>
+</section>

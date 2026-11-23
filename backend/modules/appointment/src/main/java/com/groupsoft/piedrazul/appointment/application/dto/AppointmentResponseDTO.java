@@ -19,4 +19,5 @@ public class AppointmentResponseDTO {
     private AppointmentStatus status;
     private String whatsappNumber;
     private String notes;
+    private String cancellationReason;
 }
